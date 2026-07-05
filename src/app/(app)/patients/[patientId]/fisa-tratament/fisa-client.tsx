@@ -709,16 +709,26 @@ function ReminderDialog({
   session: Session;
 }) {
   const [open, setOpen] = useState(false);
-  const [days, setDays] = useState("30");
+  const [amount, setAmount] = useState("30");
+  const [unit, setUnit] = useState<"days" | "months">("days");
+  const [manualDate, setManualDate] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [notifyPatient, setNotifyPatient] = useState(true);
   const [pending, startTransition] = useTransition();
 
-  const dueDate = useMemo(() => {
+  const computedDate = useMemo(() => {
     const d = new Date(session.session_date);
-    d.setDate(d.getDate() + (parseInt(days, 10) || 0));
+    const n = parseInt(amount, 10) || 0;
+    if (unit === "months") {
+      d.setMonth(d.getMonth() + n);
+    } else {
+      d.setDate(d.getDate() + n);
+    }
     return d.toISOString().slice(0, 10);
-  }, [session.session_date, days]);
+  }, [session.session_date, amount, unit]);
+
+  // Data aleasă manual are prioritate; modificarea intervalului o recalculează
+  const dueDate = manualDate ?? computedDate;
 
   return (
     <>
@@ -734,20 +744,42 @@ function ReminderDialog({
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="rem_days">{ro.reminders.daysAfter}</Label>
-                <Input
-                  id="rem_days"
-                  type="number"
-                  min={1}
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                />
+                <Label htmlFor="rem_amount">{ro.reminders.interval}</Label>
+                <div className="flex gap-1.5">
+                  <Input
+                    id="rem_amount"
+                    type="number"
+                    min={1}
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setManualDate(null);
+                    }}
+                    className="w-20"
+                  />
+                  <select
+                    value={unit}
+                    onChange={(e) => {
+                      setUnit(e.target.value as "days" | "months");
+                      setManualDate(null);
+                    }}
+                    className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
+                    aria-label={ro.reminders.unit}
+                  >
+                    <option value="days">{ro.reminders.unitDays}</option>
+                    <option value="months">{ro.reminders.unitMonths}</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>{ro.reminders.dueDate}</Label>
-                <p className="flex h-8 items-center rounded-lg border border-border bg-muted/40 px-2.5 text-sm">
-                  {new Date(dueDate).toLocaleDateString("ro-RO")}
-                </p>
+                <Label htmlFor="rem_date">{ro.reminders.dueDate}</Label>
+                <Input
+                  id="rem_date"
+                  type="date"
+                  value={dueDate}
+                  min={session.session_date}
+                  onChange={(e) => setManualDate(e.target.value || null)}
+                />
               </div>
             </div>
             <div className="space-y-2">
