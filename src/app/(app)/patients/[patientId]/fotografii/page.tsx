@@ -1,6 +1,17 @@
 import { ro } from "@/i18n/ro";
-import { ComingSoon } from "@/components/coming-soon";
+import { FilesPage } from "../files-page";
 
-export default function FotografiiPage() {
-  return <ComingSoon title={ro.patientHub.fotografii} />;
+export default async function FotografiiPage({
+  params,
+}: {
+  params: Promise<{ patientId: string }>;
+}) {
+  const { patientId } = await params;
+  return (
+    <FilesPage
+      patientId={patientId}
+      kind="photo"
+      title={ro.patientHub.fotografii}
+    />
+  );
 }
