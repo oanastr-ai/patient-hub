@@ -197,6 +197,41 @@ export async function addDoctor(fullName: string) {
   return data;
 }
 
+// ---------------- Remindere ----------------
+
+export async function addReminder(
+  patientId: string,
+  sessionId: string | null,
+  dueDate: string,
+  message: string,
+  notifyPatient: boolean
+) {
+  const supabase = await createClient();
+  const clinicId = await getClinicId();
+
+  const { error } = await supabase.from("reminders").insert({
+    clinic_id: clinicId,
+    patient_id: patientId,
+    session_id: sessionId,
+    due_date: dueDate,
+    message_ro: message.trim(),
+    notify_patient: notifyPatient,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(fisaPath(patientId));
+  revalidatePath("/dashboard");
+}
+
+export async function completeReminder(reminderId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("reminders")
+    .update({ status: "done" })
+    .eq("id", reminderId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard");
+}
+
 // ---------------- Lucrări protetice ----------------
 
 const prostheticSchema = z.object({

@@ -8,17 +8,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ReminderList, type ReminderRow } from "./reminder-list";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("patients")
-    .select("*", { count: "exact", head: true })
-    .is("archived_at", null);
+
+  const [{ count }, { data: reminders }] = await Promise.all([
+    supabase
+      .from("patients")
+      .select("*", { count: "exact", head: true })
+      .is("archived_at", null),
+    supabase
+      .from("reminders")
+      .select(
+        "id, due_date, message_ro, notify_patient, patient:patients ( id, first_name, last_name )"
+      )
+      .eq("status", "pending")
+      .order("due_date")
+      .limit(20),
+  ]);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{ro.nav.dashboard}</h1>
+      <h1 className="text-2xl">{ro.nav.dashboard}</h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link href="/patients">
           <Card className="transition-colors hover:bg-accent/50">
@@ -47,6 +59,11 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-xl">{ro.reminders.upcoming}</h2>
+        <ReminderList reminders={(reminders ?? []) as never as ReminderRow[]} />
+      </section>
     </div>
   );
 }

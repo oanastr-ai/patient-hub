@@ -67,7 +67,7 @@ function Tooth({
   labelAbove: boolean;
   status: ToothStatus;
   selected: boolean;
-  onClick?: (code: string) => void;
+  onClick?: (code: string, opts: { shiftKey: boolean }) => void;
 }) {
   const index = (UPPER.includes(code) ? UPPER : LOWER).indexOf(code);
   const x = toothX(index);
@@ -75,7 +75,10 @@ function Tooth({
 
   return (
     <g
-      onClick={() => onClick?.(code)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(code, { shiftKey: e.shiftKey });
+      }}
       className={cn(onClick && "cursor-pointer")}
       role={onClick ? "button" : undefined}
       aria-label={`Dinte ${formatTooth(code)}`}
@@ -124,11 +127,14 @@ export function DentalChart({
   states = {},
   selected = [],
   onToothClick,
+  onBackgroundClick,
   className,
 }: {
   states?: ToothStateMap;
   selected?: string[];
-  onToothClick?: (code: string) => void;
+  onToothClick?: (code: string, opts: { shiftKey: boolean }) => void;
+  /** Click pe zona goală a odontogramei (deselectare). */
+  onBackgroundClick?: () => void;
   className?: string;
 }) {
   const upperY = LABEL_H;
@@ -139,7 +145,8 @@ export function DentalChart({
   return (
     <svg
       viewBox={`0 0 ${ROW_WIDTH} ${height}`}
-      className={cn("w-full max-w-2xl touch-manipulation", className)}
+      className={cn("w-full touch-manipulation", className)}
+      onClick={() => onBackgroundClick?.()}
     >
       {UPPER.map((code) => (
         <Tooth

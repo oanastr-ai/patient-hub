@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
+  BellPlus,
   ChevronDown,
   Info,
   OctagonAlert,
@@ -24,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  ALL_TEETH,
   DentalChart,
   formatTooth,
   type ToothStateMap,
@@ -34,6 +36,7 @@ import {
   addDoctor,
   addProcedure,
   addProstheticWork,
+  addReminder,
   addSession,
   deleteSession,
   dismissAlert,
@@ -147,8 +150,9 @@ export function FisaClient({
 
   // Interacțiuni fișă
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [toothFilter, setToothFilter] = useState<string | null>(null);
+  const [toothFilter, setToothFilter] = useState<string[]>([]);
   const [toothDialog, setToothDialog] = useState<string | null>(null);
+  const [lastClickedTooth, setLastClickedTooth] = useState<string | null>(null);
 
   // Formular ședință (nouă sau în editare)
   const [formOpen, setFormOpen] = useState(false);
@@ -172,13 +176,12 @@ export function FisaClient({
   // Dinții evidențiați pe odontogramă
   const highlightedTeeth = useMemo(() => {
     if (formOpen) return draftTeeth;
-    const teeth = new Set<string>();
+    const teeth = new Set<string>(toothFilter);
     if (expandedSession) {
       for (const item of expandedSession.items) {
         for (const t of item.tooth_codes) teeth.add(t);
       }
     }
-    if (toothFilter) teeth.add(toothFilter);
     return [...teeth];
   }, [formOpen, draftTeeth, expandedSession, toothFilter]);
 
@@ -186,9 +189,11 @@ export function FisaClient({
   const filteredSessions = useMemo(() => {
     const q = normalize(query.trim());
     let result = sessions;
-    if (toothFilter) {
+    if (toothFilter.length > 0) {
       result = result.filter((s) =>
-        s.items.some((item) => item.tooth_codes.includes(toothFilter))
+        s.items.some((item) =>
+          item.tooth_codes.some((t) => toothFilter.includes(t))
+        )
       );
     }
     if (q) {
@@ -207,15 +212,40 @@ export function FisaClient({
     return result;
   }, [sessions, query, toothFilter]);
 
-  function handleToothClick(code: string) {
+  /**
+   * Click pe dinte: toggle simplu; cu Shift selectează intervalul
+   * de la ultimul dinte apăsat până la cel curent.
+   */
+  function handleToothClick(code: string, opts: { shiftKey: boolean }) {
+    const apply = (prev: string[]): string[] => {
+      if (opts.shiftKey && lastClickedTooth && lastClickedTooth !== code) {
+        const a = ALL_TEETH.indexOf(lastClickedTooth);
+        const b = ALL_TEETH.indexOf(code);
+        const range = ALL_TEETH.slice(Math.min(a, b), Math.max(a, b) + 1);
+        return [...new Set([...prev, ...range])];
+      }
+      return prev.includes(code)
+        ? prev.filter((t) => t !== code)
+        : [...prev, code];
+    };
+
     if (formOpen) {
-      setDraftTeeth((prev) =>
-        prev.includes(code) ? prev.filter((t) => t !== code) : [...prev, code]
-      );
+      setDraftTeeth(apply);
     } else {
-      setToothFilter((prev) => (prev === code ? null : code));
+      setToothFilter(apply);
       setExpandedId(null);
     }
+    setLastClickedTooth(code);
+  }
+
+  /** Click pe zona goală a odontogramei — golește selecția curentă. */
+  function handleChartBackgroundClick() {
+    if (formOpen) {
+      setDraftTeeth([]);
+    } else {
+      setToothFilter([]);
+    }
+    setLastClickedTooth(null);
   }
 
   function resetForm() {
@@ -242,7 +272,7 @@ export function FisaClient({
         note: item.note ?? "",
       }))
     );
-    setToothFilter(null);
+    setToothFilter([]);
     setExpandedId(null);
     setFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -287,14 +317,7 @@ export function FisaClient({
   }
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <header>
-        <p className="text-sm text-muted-foreground">{ro.fisa.title}</p>
-        <h1 className="text-3xl">
-          {patient.last_name} {patient.first_name}
-        </h1>
-      </header>
-
+    <div className="space-y-8">
       {/* ---------- Alerte de sănătate ---------- */}
       <section className="space-y-2">
         {alerts.map((a) => {
@@ -329,17 +352,23 @@ export function FisaClient({
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl">{ro.fisa.dentalChart}</h2>
-          {toothFilter && !formOpen && (
+          {toothFilter.length > 0 && !formOpen && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-sm">
-              {ro.fisa.toothFilterLabel} {formatTooth(toothFilter)}
+              {ro.fisa.toothFilterLabel}{" "}
+              {[...toothFilter]
+                .sort((a, b) => ALL_TEETH.indexOf(a) - ALL_TEETH.indexOf(b))
+                .map(formatTooth)
+                .join(", ")}
+              {toothFilter.length === 1 && (
+                <button
+                  onClick={() => setToothDialog(toothFilter[0])}
+                  className="underline underline-offset-2 opacity-90 hover:opacity-100"
+                >
+                  {ro.fisa.toothDetails}
+                </button>
+              )}
               <button
-                onClick={() => setToothDialog(toothFilter)}
-                className="underline underline-offset-2 opacity-90 hover:opacity-100"
-              >
-                {ro.fisa.toothDetails}
-              </button>
-              <button
-                onClick={() => setToothFilter(null)}
+                onClick={() => setToothFilter([])}
                 className="rounded-full p-0.5 hover:bg-primary-foreground/20"
                 title={ro.fisa.clearFilter}
               >
@@ -356,6 +385,7 @@ export function FisaClient({
             states={stateMap}
             selected={highlightedTeeth}
             onToothClick={handleToothClick}
+            onBackgroundClick={handleChartBackgroundClick}
           />
         </div>
       </section>
@@ -564,7 +594,7 @@ export function FisaClient({
                   <button
                     onClick={() => {
                       setExpandedId(expanded ? null : s.id);
-                      if (!expanded) setToothFilter(null);
+                      if (!expanded) setToothFilter([]);
                     }}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left"
                   >
@@ -619,7 +649,7 @@ export function FisaClient({
                           {s.notes}
                         </p>
                       )}
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         <Button
                           size="sm"
                           variant="outline"
@@ -628,6 +658,7 @@ export function FisaClient({
                           <Pencil className="h-3.5 w-3.5 mr-1.5" />
                           {ro.common.edit}
                         </Button>
+                        <ReminderDialog patientId={patient.id} session={s} />
                         <Button
                           size="sm"
                           variant="destructive"
@@ -665,6 +696,101 @@ export function FisaClient({
         onClose={() => setToothDialog(null)}
       />
     </div>
+  );
+}
+
+// ---------- Dialog reminder ----------
+
+function ReminderDialog({
+  patientId,
+  session,
+}: {
+  patientId: string;
+  session: Session;
+}) {
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState("30");
+  const [message, setMessage] = useState("");
+  const [notifyPatient, setNotifyPatient] = useState(true);
+  const [pending, startTransition] = useTransition();
+
+  const dueDate = useMemo(() => {
+    const d = new Date(session.session_date);
+    d.setDate(d.getDate() + (parseInt(days, 10) || 0));
+    return d.toISOString().slice(0, 10);
+  }, [session.session_date, days]);
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <BellPlus className="h-3.5 w-3.5 mr-1.5" />
+        {ro.reminders.add}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{ro.reminders.add}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="rem_days">{ro.reminders.daysAfter}</Label>
+                <Input
+                  id="rem_days"
+                  type="number"
+                  min={1}
+                  value={days}
+                  onChange={(e) => setDays(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{ro.reminders.dueDate}</Label>
+                <p className="flex h-8 items-center rounded-lg border border-border bg-muted/40 px-2.5 text-sm">
+                  {new Date(dueDate).toLocaleDateString("ro-RO")}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rem_msg">{ro.reminders.message}</Label>
+              <textarea
+                id="rem_msg"
+                rows={2}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notifyPatient}
+                onChange={(e) => setNotifyPatient(e.target.checked)}
+                className="h-4 w-4 accent-[var(--primary)]"
+              />
+              {ro.reminders.notifyPatient}
+            </label>
+            <Button
+              disabled={pending || !message.trim()}
+              onClick={() =>
+                startTransition(async () => {
+                  await addReminder(
+                    patientId,
+                    session.id,
+                    dueDate,
+                    message,
+                    notifyPatient
+                  );
+                  setMessage("");
+                  setOpen(false);
+                })
+              }
+            >
+              {pending ? ro.common.loading : ro.patients.save}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
