@@ -5,6 +5,14 @@ import { AppNav } from "@/components/app-nav";
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Supabase neconfigurat încă — trimite la login în loc să crape.
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    redirect("/login");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
