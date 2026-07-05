@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateField } from "@/components/ui/date-field";
 import {
   ALL_TEETH,
   DentalChart,
@@ -110,8 +111,10 @@ function fmtDate(iso: string) {
   });
 }
 
+/** Data locală de azi în format ISO (nu UTC — altfel după miezul nopții ar fi ziua precedentă). */
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function ToothChip({ code }: { code: string }) {
@@ -426,11 +429,10 @@ export function FisaClient({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="session_date">{ro.fisa.sessionDate}</Label>
-                <Input
+                <DateField
                   id="session_date"
-                  type="date"
                   value={sessionDate}
-                  onChange={(e) => setSessionDate(e.target.value)}
+                  onChange={setSessionDate}
                 />
               </div>
               <div className="space-y-2">
@@ -773,12 +775,11 @@ function ReminderDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rem_date">{ro.reminders.dueDate}</Label>
-                <Input
+                <DateField
                   id="rem_date"
-                  type="date"
                   value={dueDate}
                   min={session.session_date}
-                  onChange={(e) => setManualDate(e.target.value || null)}
+                  onChange={(v) => setManualDate(v || null)}
                 />
               </div>
             </div>
@@ -1164,10 +1165,9 @@ function ProstheticsSection({
         <div className="rounded-2xl border-2 border-primary/25 bg-card p-4 shadow-sm grid gap-3 sm:grid-cols-2 sm:p-5">
           <div className="space-y-2">
             <Label>{ro.fisa.sessionDate}</Label>
-            <Input
-              type="date"
+            <DateField
               value={form.work_date}
-              onChange={(e) => set("work_date", e.target.value)}
+              onChange={(v) => set("work_date", v)}
             />
           </div>
           <div className="space-y-2">

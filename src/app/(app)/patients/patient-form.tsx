@@ -6,6 +6,7 @@ import { ro } from "@/i18n/ro";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/ui/date-field";
 
 export type PatientFormValues = {
   id?: string;
@@ -64,13 +65,21 @@ export function PatientForm({
         {fields.map((f) => (
           <div key={f.name} className="space-y-2">
             <Label htmlFor={f.name}>{f.label}</Label>
-            <Input
-              id={f.name}
-              name={f.name}
-              type={f.type ?? "text"}
-              required={f.required}
-              defaultValue={(patient?.[f.name] as string) ?? ""}
-            />
+            {f.type === "date" ? (
+              <DateField
+                id={f.name}
+                name={f.name}
+                defaultValue={(patient?.[f.name] as string) ?? ""}
+              />
+            ) : (
+              <Input
+                id={f.name}
+                name={f.name}
+                type={f.type ?? "text"}
+                required={f.required}
+                defaultValue={(patient?.[f.name] as string) ?? ""}
+              />
+            )}
           </div>
         ))}
       </div>
