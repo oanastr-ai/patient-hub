@@ -63,6 +63,46 @@ export async function addSession(
   revalidatePath(fisaPath(patientId));
 }
 
+export async function updateSession(
+  patientId: string,
+  sessionId: string,
+  input: z.infer<typeof sessionSchema>
+) {
+  const parsed = sessionSchema.parse(input);
+  const supabase = await createClient();
+  const clinicId = await getClinicId();
+
+  const { error } = await supabase
+    .from("treatment_sessions")
+    .update({
+      doctor_id: parsed.doctor_id,
+      session_date: parsed.session_date,
+      notes: parsed.notes,
+    })
+    .eq("id", sessionId);
+  if (error) throw new Error(error.message);
+
+  // Înlocuiește manoperele ședinței cu cele din formular
+  const { error: delError } = await supabase
+    .from("session_items")
+    .delete()
+    .eq("session_id", sessionId);
+  if (delError) throw new Error(delError.message);
+
+  const { error: itemsError } = await supabase.from("session_items").insert(
+    parsed.items.map((item) => ({
+      clinic_id: clinicId,
+      session_id: sessionId,
+      procedure_id: item.procedure_id,
+      tooth_codes: item.tooth_codes,
+      note: item.note,
+    }))
+  );
+  if (itemsError) throw new Error(itemsError.message);
+
+  revalidatePath(fisaPath(patientId));
+}
+
 export async function deleteSession(patientId: string, sessionId: string) {
   const supabase = await createClient();
   const { error } = await supabase

@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import { ro } from "@/i18n/ro";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin", "latin-ext"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin", "latin-ext"],
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +29,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0f766e",
+  themeColor: "#2a6f6b",
 };
 
 export default function RootLayout({
@@ -32,7 +38,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro" className={`${geistSans.variable} h-full antialiased`}>
+    <html
+      lang="ro"
+      className={`${manrope.variable} ${fraunces.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col bg-background">{children}</body>
     </html>
   );

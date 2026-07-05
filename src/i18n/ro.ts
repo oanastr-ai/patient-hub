@@ -58,6 +58,12 @@ export const ro = {
     severityCritical: "Critic",
     dismissAlert: "Elimină",
     dentalChart: "Oglinda dentară",
+    chartHint:
+      "Atinge un dinte pentru a filtra ședințele lui; atinge din nou pentru a renunța.",
+    toothFilterLabel: "Dinte",
+    toothDetails: "stare & istoric",
+    clearFilter: "Șterge filtrul",
+    editSession: "Editează ședința",
     toothHistory: "Istoric dinte",
     toothStatus: "Starea dintelui",
     noHistory: "Nicio intervenție înregistrată pe acest dinte.",

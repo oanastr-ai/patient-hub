@@ -3,8 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
+  ChevronDown,
   Info,
   OctagonAlert,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -15,13 +17,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +38,7 @@ import {
   deleteSession,
   dismissAlert,
   setToothState,
+  updateSession,
 } from "./actions";
 
 // ---------- Tipuri ----------
@@ -82,10 +78,10 @@ type DraftItem = {
 
 const SEVERITY_STYLES: Record<string, string> = {
   critical:
-    "border-red-500 bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100",
+    "border-red-600/70 bg-red-50 text-red-950 dark:bg-red-950/60 dark:text-red-50",
   warning:
-    "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
-  info: "border-blue-400 bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-100",
+    "border-amber-500/70 bg-amber-50 text-amber-950 dark:bg-amber-950/60 dark:text-amber-50",
+  info: "border-primary/50 bg-accent text-accent-foreground",
 };
 
 const SEVERITY_ICONS: Record<string, typeof Info> = {
@@ -104,11 +100,23 @@ function normalize(s: string) {
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ro-RO");
+  return new Date(iso).toLocaleDateString("ro-RO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function ToothChip({ code }: { code: string }) {
+  return (
+    <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary">
+      {formatTooth(code)}
+    </span>
+  );
 }
 
 // ---------- Componenta principală ----------
@@ -137,8 +145,14 @@ export function FisaClient({
   const [doctors, setDoctors] = useState(initialDoctors);
   const [procedures, setProcedures] = useState(initialProcedures);
 
-  // Formular ședință nouă
+  // Interacțiuni fișă
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [toothFilter, setToothFilter] = useState<string | null>(null);
+  const [toothDialog, setToothDialog] = useState<string | null>(null);
+
+  // Formular ședință (nouă sau în editare)
   const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [sessionDate, setSessionDate] = useState(today());
   const [doctorId, setDoctorId] = useState<string>(initialDoctors[0]?.id ?? "");
   const [sessionNotes, setSessionNotes] = useState("");
@@ -147,31 +161,51 @@ export function FisaClient({
   const [draftTeeth, setDraftTeeth] = useState<string[]>([]);
   const [draftNote, setDraftNote] = useState("");
 
-  // Dialog dinte
-  const [toothDialog, setToothDialog] = useState<string | null>(null);
-
   const stateMap: ToothStateMap = useMemo(() => {
     const map: ToothStateMap = {};
     for (const t of toothStates) map[t.tooth_code] = t.status as ToothStatus;
     return map;
   }, [toothStates]);
 
-  // Căutare: după dinte ("24"/"2.4") sau manoperă/notiță
+  const expandedSession = sessions.find((s) => s.id === expandedId) ?? null;
+
+  // Dinții evidențiați pe odontogramă
+  const highlightedTeeth = useMemo(() => {
+    if (formOpen) return draftTeeth;
+    const teeth = new Set<string>();
+    if (expandedSession) {
+      for (const item of expandedSession.items) {
+        for (const t of item.tooth_codes) teeth.add(t);
+      }
+    }
+    if (toothFilter) teeth.add(toothFilter);
+    return [...teeth];
+  }, [formOpen, draftTeeth, expandedSession, toothFilter]);
+
+  // Căutare text + filtru dinte
   const filteredSessions = useMemo(() => {
     const q = normalize(query.trim());
-    if (!q) return sessions;
-    return sessions
-      .map((s) => {
-        const matching = s.items.filter(
-          (item) =>
-            item.tooth_codes.some((t) => t.includes(q)) ||
-            normalize(item.procedure?.name_ro ?? "").includes(q) ||
-            normalize(item.note ?? "").includes(q)
-        );
-        return matching.length > 0 ? { ...s, items: matching } : null;
-      })
-      .filter((s): s is Session => s !== null);
-  }, [sessions, query]);
+    let result = sessions;
+    if (toothFilter) {
+      result = result.filter((s) =>
+        s.items.some((item) => item.tooth_codes.includes(toothFilter))
+      );
+    }
+    if (q) {
+      result = result
+        .map((s) => {
+          const matching = s.items.filter(
+            (item) =>
+              item.tooth_codes.some((t) => t.includes(q)) ||
+              normalize(item.procedure?.name_ro ?? "").includes(q) ||
+              normalize(item.note ?? "").includes(q)
+          );
+          return matching.length > 0 ? { ...s, items: matching } : null;
+        })
+        .filter((s): s is Session => s !== null);
+    }
+    return result;
+  }, [sessions, query, toothFilter]);
 
   function handleToothClick(code: string) {
     if (formOpen) {
@@ -179,8 +213,39 @@ export function FisaClient({
         prev.includes(code) ? prev.filter((t) => t !== code) : [...prev, code]
       );
     } else {
-      setToothDialog(code);
+      setToothFilter((prev) => (prev === code ? null : code));
+      setExpandedId(null);
     }
+  }
+
+  function resetForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setSessionDate(today());
+    setSessionNotes("");
+    setItems([]);
+    setDraftProcedureId("");
+    setDraftTeeth([]);
+    setDraftNote("");
+  }
+
+  function startEdit(s: Session) {
+    setEditingId(s.id);
+    setSessionDate(s.session_date);
+    setDoctorId(s.doctor?.id ?? initialDoctors[0]?.id ?? "");
+    setSessionNotes(s.notes ?? "");
+    setItems(
+      s.items.map((item) => ({
+        procedure_id: item.procedure?.id ?? "",
+        procedure_name: item.procedure?.name_ro ?? "",
+        tooth_codes: item.tooth_codes,
+        note: item.note ?? "",
+      }))
+    );
+    setToothFilter(null);
+    setExpandedId(null);
+    setFormOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function addDraftItem() {
@@ -201,29 +266,34 @@ export function FisaClient({
   }
 
   function saveSession() {
+    const payload = {
+      session_date: sessionDate,
+      doctor_id: doctorId || null,
+      notes: sessionNotes.trim() || null,
+      items: items.map((i) => ({
+        procedure_id: i.procedure_id,
+        tooth_codes: i.tooth_codes,
+        note: i.note || null,
+      })),
+    };
     startTransition(async () => {
-      await addSession(patient.id, {
-        session_date: sessionDate,
-        doctor_id: doctorId || null,
-        notes: sessionNotes.trim() || null,
-        items: items.map((i) => ({
-          procedure_id: i.procedure_id,
-          tooth_codes: i.tooth_codes,
-          note: i.note || null,
-        })),
-      });
-      setFormOpen(false);
-      setSessionDate(today());
-      setSessionNotes("");
-      setItems([]);
+      if (editingId) {
+        await updateSession(patient.id, editingId, payload);
+      } else {
+        await addSession(patient.id, payload);
+      }
+      resetForm();
     });
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <h1 className="text-2xl font-semibold">
-        {ro.fisa.title}: {patient.last_name} {patient.first_name}
-      </h1>
+    <div className="space-y-8 max-w-4xl">
+      <header>
+        <p className="text-sm text-muted-foreground">{ro.fisa.title}</p>
+        <h1 className="text-3xl">
+          {patient.last_name} {patient.first_name}
+        </h1>
+      </header>
 
       {/* ---------- Alerte de sănătate ---------- */}
       <section className="space-y-2">
@@ -233,7 +303,7 @@ export function FisaClient({
             <div
               key={a.id}
               className={cn(
-                "flex items-center gap-3 rounded-lg border-l-4 border p-3 font-medium",
+                "flex items-center gap-3 rounded-xl border-l-4 border p-3.5 font-medium shadow-sm",
                 SEVERITY_STYLES[a.severity] ?? SEVERITY_STYLES.info
               )}
               role="alert"
@@ -245,7 +315,7 @@ export function FisaClient({
                   startTransition(() => dismissAlert(patient.id, a.id))
                 }
                 title={ro.fisa.dismissAlert}
-                className="opacity-60 hover:opacity-100"
+                className="rounded-md p-1 opacity-50 transition-opacity hover:opacity-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -256,256 +326,335 @@ export function FisaClient({
       </section>
 
       {/* ---------- Oglinda dentară ---------- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{ro.fisa.dentalChart}</CardTitle>
-          {formOpen && (
-            <p className="text-sm text-muted-foreground">
-              {ro.fisa.selectTeeth}
-            </p>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-xl">{ro.fisa.dentalChart}</h2>
+          {toothFilter && !formOpen && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground shadow-sm">
+              {ro.fisa.toothFilterLabel} {formatTooth(toothFilter)}
+              <button
+                onClick={() => setToothDialog(toothFilter)}
+                className="underline underline-offset-2 opacity-90 hover:opacity-100"
+              >
+                {ro.fisa.toothDetails}
+              </button>
+              <button
+                onClick={() => setToothFilter(null)}
+                className="rounded-full p-0.5 hover:bg-primary-foreground/20"
+                title={ro.fisa.clearFilter}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
           )}
-        </CardHeader>
-        <CardContent>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {formOpen ? ro.fisa.selectTeeth : ro.fisa.chartHint}
+        </p>
+        <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
           <DentalChart
             states={stateMap}
-            selected={formOpen ? draftTeeth : []}
+            selected={highlightedTeeth}
             onToothClick={handleToothClick}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* ---------- Ședințe ---------- */}
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>{ro.fisa.sessions}</CardTitle>
-            <Button
-              size="sm"
-              variant={formOpen ? "outline" : "default"}
-              onClick={() => setFormOpen((v) => !v)}
-            >
-              {formOpen ? ro.patients.cancel : (
-                <>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {ro.fisa.addSession}
-                </>
-              )}
-            </Button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={ro.fisa.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Formular ședință nouă */}
-          {formOpen && (
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="session_date">{ro.fisa.sessionDate}</Label>
-                  <Input
-                    id="session_date"
-                    type="date"
-                    value={sessionDate}
-                    onChange={(e) => setSessionDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="doctor">{ro.fisa.doctor}</Label>
-                  <div className="flex gap-2">
-                    <select
-                      id="doctor"
-                      value={doctorId}
-                      onChange={(e) => setDoctorId(e.target.value)}
-                      className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
-                    >
-                      {doctors.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.full_name}
-                        </option>
-                      ))}
-                    </select>
-                    <AddDoctorDialog
-                      onAdded={(d) => {
-                        setDoctors((prev) => [...prev, d]);
-                        setDoctorId(d.id);
-                      }}
-                    />
-                  </div>
-                </div>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl">{ro.fisa.sessions}</h2>
+          <Button
+            variant={formOpen ? "outline" : "default"}
+            onClick={() => (formOpen ? resetForm() : setFormOpen(true))}
+          >
+            {formOpen ? ro.patients.cancel : (
+              <>
+                <Plus className="h-4 w-4 mr-1" />
+                {ro.fisa.addSession}
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={ro.fisa.search}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9 bg-card"
+          />
+        </div>
+
+        {/* Formular ședință nouă / editare */}
+        {formOpen && (
+          <div className="rounded-2xl border-2 border-primary/25 bg-card p-4 shadow-sm space-y-4 sm:p-5">
+            <h3 className="text-lg">
+              {editingId ? ro.fisa.editSession : ro.fisa.addSession}
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="session_date">{ro.fisa.sessionDate}</Label>
+                <Input
+                  id="session_date"
+                  type="date"
+                  value={sessionDate}
+                  onChange={(e) => setSessionDate(e.target.value)}
+                />
               </div>
-
-              {/* Manopere adăugate la ședință */}
-              {items.length > 0 && (
-                <ul className="space-y-2">
-                  {items.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-2 rounded-md bg-background border px-3 py-2 text-sm"
-                    >
-                      <span className="font-medium">{item.procedure_name}</span>
-                      {item.tooth_codes.length > 0 && (
-                        <span className="text-muted-foreground">
-                          {item.tooth_codes.map(formatTooth).join(", ")}
-                        </span>
-                      )}
-                      {item.note && (
-                        <span className="text-muted-foreground italic truncate">
-                          {item.note}
-                        </span>
-                      )}
-                      <button
-                        onClick={() =>
-                          setItems((prev) => prev.filter((_, j) => j !== i))
-                        }
-                        className="ml-auto opacity-60 hover:opacity-100"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* Manoperă nouă în lucru */}
-              <div className="space-y-3 rounded-md border border-dashed p-3">
+              <div className="space-y-2">
+                <Label htmlFor="doctor">{ro.fisa.doctor}</Label>
                 <div className="flex gap-2">
                   <select
-                    value={draftProcedureId}
-                    onChange={(e) => setDraftProcedureId(e.target.value)}
+                    id="doctor"
+                    value={doctorId}
+                    onChange={(e) => setDoctorId(e.target.value)}
                     className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
                   >
-                    <option value="">{ro.fisa.selectProcedure}</option>
-                    {categories.map((c) => (
-                      <optgroup key={c.id} label={c.name_ro}>
-                        {procedures
-                          .filter((p) => p.category_id === c.id)
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name_ro}
-                            </option>
-                          ))}
-                      </optgroup>
+                    {doctors.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.full_name}
+                      </option>
                     ))}
                   </select>
-                  <AddProcedureDialog
-                    categories={categories}
-                    onAdded={(p) => {
-                      setProcedures((prev) =>
-                        [...prev, p].sort((a, b) =>
-                          a.name_ro.localeCompare(b.name_ro, "ro")
-                        )
-                      );
-                      setDraftProcedureId(p.id);
+                  <AddDoctorDialog
+                    onAdded={(d) => {
+                      setDoctors((prev) => [...prev, d]);
+                      setDoctorId(d.id);
                     }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {ro.fisa.teeth}:{" "}
-                  {draftTeeth.length > 0
-                    ? [...draftTeeth].sort().map(formatTooth).join(", ")
-                    : ro.fisa.noTeeth}{" "}
-                  — {ro.fisa.selectTeeth.toLowerCase()}
-                </p>
-                <Input
-                  placeholder={ro.fisa.itemNote}
-                  value={draftNote}
-                  onChange={(e) => setDraftNote(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!draftProcedureId}
-                  onClick={addDraftItem}
+              </div>
+            </div>
+
+            {items.length > 0 && (
+              <ul className="space-y-2">
+                {items.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium">{item.procedure_name}</span>
+                    {item.tooth_codes.map((t) => (
+                      <ToothChip key={t} code={t} />
+                    ))}
+                    {item.note && (
+                      <span className="text-muted-foreground italic">
+                        {item.note}
+                      </span>
+                    )}
+                    <button
+                      onClick={() =>
+                        setItems((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      className="ml-auto rounded-md p-1 opacity-50 hover:opacity-100"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="space-y-3 rounded-xl border border-dashed border-primary/30 p-3.5">
+              <div className="flex gap-2">
+                <select
+                  value={draftProcedureId}
+                  onChange={(e) => setDraftProcedureId(e.target.value)}
+                  className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  {ro.fisa.addItem}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="session_notes">{ro.fisa.sessionNotes}</Label>
-                <textarea
-                  id="session_notes"
-                  rows={2}
-                  value={sessionNotes}
-                  onChange={(e) => setSessionNotes(e.target.value)}
-                  className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  <option value="">{ro.fisa.selectProcedure}</option>
+                  {categories.map((c) => (
+                    <optgroup key={c.id} label={c.name_ro}>
+                      {procedures
+                        .filter((p) => p.category_id === c.id)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name_ro}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <AddProcedureDialog
+                  categories={categories}
+                  onAdded={(p) => {
+                    setProcedures((prev) =>
+                      [...prev, p].sort((a, b) =>
+                        a.name_ro.localeCompare(b.name_ro, "ro")
+                      )
+                    );
+                    setDraftProcedureId(p.id);
+                  }}
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                {ro.fisa.teeth}:{" "}
+                {draftTeeth.length > 0 ? (
+                  <span className="inline-flex flex-wrap gap-1 align-middle">
+                    {[...draftTeeth].sort().map((t) => (
+                      <ToothChip key={t} code={t} />
+                    ))}
+                  </span>
+                ) : (
+                  ro.fisa.noTeeth
+                )}
+              </p>
+              <Input
+                placeholder={ro.fisa.itemNote}
+                value={draftNote}
+                onChange={(e) => setDraftNote(e.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!draftProcedureId}
+                onClick={addDraftItem}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {ro.fisa.addItem}
+              </Button>
+            </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="session_notes">{ro.fisa.sessionNotes}</Label>
+              <textarea
+                id="session_notes"
+                rows={2}
+                value={sessionNotes}
+                onChange={(e) => setSessionNotes(e.target.value)}
+                className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-2">
               <Button
                 onClick={saveSession}
                 disabled={pending || items.length === 0}
               >
                 {pending ? ro.common.loading : ro.patients.save}
               </Button>
+              <Button variant="outline" onClick={resetForm}>
+                {ro.patients.cancel}
+              </Button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Lista ședințelor */}
-          {filteredSessions.length === 0 ? (
-            <p className="py-6 text-center text-muted-foreground">
-              {sessions.length === 0 ? ro.fisa.noSessions : ro.fisa.noSearchResults}
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {filteredSessions.map((s) => (
-                <li key={s.id} className="rounded-lg border p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-semibold">{fmtDate(s.session_date)}</span>
+        {/* Lista ședințelor — carduri expandabile */}
+        {filteredSessions.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">
+            {sessions.length === 0 ? ro.fisa.noSessions : ro.fisa.noSearchResults}
+          </p>
+        ) : (
+          <ul className="space-y-2.5">
+            {filteredSessions.map((s) => {
+              const expanded = expandedId === s.id;
+              return (
+                <li
+                  key={s.id}
+                  className={cn(
+                    "overflow-hidden rounded-xl border bg-card transition-all duration-200",
+                    expanded
+                      ? "border-primary/40 shadow-md"
+                      : "shadow-sm hover:border-primary/25"
+                  )}
+                >
+                  <button
+                    onClick={() => {
+                      setExpandedId(expanded ? null : s.id);
+                      if (!expanded) setToothFilter(null);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                  >
+                    <span className="font-semibold whitespace-nowrap">
+                      {fmtDate(s.session_date)}
+                    </span>
                     {s.doctor && (
-                      <Badge variant="secondary">{s.doctor.full_name}</Badge>
+                      <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground whitespace-nowrap">
+                        {s.doctor.full_name}
+                      </span>
                     )}
-                    <button
-                      onClick={() => {
-                        if (confirm(ro.common.deleteConfirm)) {
-                          startTransition(() =>
-                            deleteSession(patient.id, s.id)
-                          );
-                        }
-                      }}
-                      className="ml-auto text-muted-foreground hover:text-destructive"
-                      title={ro.common.delete}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <ul className="space-y-1">
-                    {s.items.map((item) => (
-                      <li key={item.id} className="flex flex-wrap items-center gap-2 text-sm">
-                        <span>{item.procedure?.name_ro}</span>
-                        {item.tooth_codes.length > 0 && (
-                          <span className="font-mono text-primary">
-                            {item.tooth_codes.map(formatTooth).join(", ")}
-                          </span>
-                        )}
-                        {item.note && (
-                          <span className="text-muted-foreground italic">
-                            {item.note}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  {s.notes && (
-                    <p className="text-sm text-muted-foreground">{s.notes}</p>
+                    {!expanded && (
+                      <span className="truncate text-sm text-muted-foreground">
+                        {s.items
+                          .map((i) => i.procedure?.name_ro)
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={cn(
+                        "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                        expanded && "rotate-180"
+                      )}
+                    />
+                  </button>
+
+                  {expanded && (
+                    <div className="space-y-3 border-t bg-muted/20 px-4 py-3.5">
+                      <ul className="space-y-2">
+                        {s.items.map((item) => (
+                          <li
+                            key={item.id}
+                            className="flex flex-wrap items-center gap-2 text-sm"
+                          >
+                            <span className="font-medium">
+                              {item.procedure?.name_ro}
+                            </span>
+                            {item.tooth_codes.map((t) => (
+                              <ToothChip key={t} code={t} />
+                            ))}
+                            {item.note && (
+                              <span className="text-muted-foreground italic">
+                                {item.note}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      {s.notes && (
+                        <p className="whitespace-pre-wrap rounded-lg bg-secondary/60 px-3 py-2 text-sm text-secondary-foreground">
+                          {s.notes}
+                        </p>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(s)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                          {ro.common.edit}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={pending}
+                          onClick={() => {
+                            if (confirm(ro.common.deleteConfirm)) {
+                              startTransition(() =>
+                                deleteSession(patient.id, s.id)
+                              );
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          {ro.common.delete}
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* ---------- Lucrări protetice ---------- */}
-      <ProstheticsCard patientId={patient.id} prosthetics={prosthetics} />
+      <ProstheticsSection patientId={patient.id} prosthetics={prosthetics} />
 
       {/* ---------- Dialog dinte ---------- */}
       <ToothDialog
@@ -796,7 +945,7 @@ function ToothDialog({
                 {history.map((h, i) => (
                   <li key={i} className="text-sm flex gap-2">
                     <span className="text-muted-foreground shrink-0">
-                      {fmtDate(h.date)}
+                      {new Date(h.date).toLocaleDateString("ro-RO")}
                     </span>
                     <span>{h.procedure}</span>
                     {h.note && (
@@ -815,7 +964,7 @@ function ToothDialog({
 
 // ---------- Lucrări protetice ----------
 
-function ProstheticsCard({
+function ProstheticsSection({
   patientId,
   prosthetics,
 }: {
@@ -837,11 +986,10 @@ function ProstheticsCard({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>{ro.fisa.prosthetics}</CardTitle>
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl">{ro.fisa.prosthetics}</h2>
         <Button
-          size="sm"
           variant={formOpen ? "outline" : "default"}
           onClick={() => setFormOpen((v) => !v)}
         >
@@ -852,106 +1000,107 @@ function ProstheticsCard({
             </>
           )}
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {formOpen && (
-          <div className="rounded-lg border bg-muted/30 p-4 grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{ro.fisa.sessionDate}</Label>
-              <Input
-                type="date"
-                value={form.work_date}
-                onChange={(e) => set("work_date", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{ro.fisa.prostheticPlan}</Label>
-              <Input
-                value={form.plan}
-                onChange={(e) => set("plan", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{ro.fisa.prostheticMaterial}</Label>
-              <Input
-                value={form.material}
-                onChange={(e) => set("material", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{ro.fisa.prostheticColor}</Label>
-              <Input
-                value={form.color}
-                onChange={(e) => set("color", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{ro.fisa.prostheticTechnician}</Label>
-              <Input
-                value={form.technician}
-                onChange={(e) => set("technician", e.target.value)}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                disabled={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    await addProstheticWork(patientId, {
-                      work_date: form.work_date,
-                      plan: form.plan.trim() || null,
-                      material: form.material.trim() || null,
-                      color: form.color.trim() || null,
-                      technician: form.technician.trim() || null,
-                    });
-                    setFormOpen(false);
-                    setForm({
-                      work_date: today(),
-                      plan: "",
-                      material: "",
-                      color: "",
-                      technician: "",
-                    });
-                  })
-                }
-              >
-                {pending ? ro.common.loading : ro.patients.save}
-              </Button>
-            </div>
-          </div>
-        )}
+      </div>
 
-        {prosthetics.length === 0 ? (
-          <p className="py-4 text-center text-muted-foreground">
-            {ro.fisa.noProsthetics}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">{ro.fisa.sessionDate}</th>
-                  <th className="py-2 pr-3 font-medium">{ro.fisa.prostheticPlan}</th>
-                  <th className="py-2 pr-3 font-medium">{ro.fisa.prostheticMaterial}</th>
-                  <th className="py-2 pr-3 font-medium">{ro.fisa.prostheticColor}</th>
-                  <th className="py-2 font-medium">{ro.fisa.prostheticTechnician}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {prosthetics.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0">
-                    <td className="py-2 pr-3 whitespace-nowrap">{fmtDate(p.work_date)}</td>
-                    <td className="py-2 pr-3">{p.plan}</td>
-                    <td className="py-2 pr-3">{p.material}</td>
-                    <td className="py-2 pr-3">{p.color}</td>
-                    <td className="py-2">{p.technician}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {formOpen && (
+        <div className="rounded-2xl border-2 border-primary/25 bg-card p-4 shadow-sm grid gap-3 sm:grid-cols-2 sm:p-5">
+          <div className="space-y-2">
+            <Label>{ro.fisa.sessionDate}</Label>
+            <Input
+              type="date"
+              value={form.work_date}
+              onChange={(e) => set("work_date", e.target.value)}
+            />
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <div className="space-y-2">
+            <Label>{ro.fisa.prostheticPlan}</Label>
+            <Input
+              value={form.plan}
+              onChange={(e) => set("plan", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{ro.fisa.prostheticMaterial}</Label>
+            <Input
+              value={form.material}
+              onChange={(e) => set("material", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{ro.fisa.prostheticColor}</Label>
+            <Input
+              value={form.color}
+              onChange={(e) => set("color", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{ro.fisa.prostheticTechnician}</Label>
+            <Input
+              value={form.technician}
+              onChange={(e) => set("technician", e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  await addProstheticWork(patientId, {
+                    work_date: form.work_date,
+                    plan: form.plan.trim() || null,
+                    material: form.material.trim() || null,
+                    color: form.color.trim() || null,
+                    technician: form.technician.trim() || null,
+                  });
+                  setFormOpen(false);
+                  setForm({
+                    work_date: today(),
+                    plan: "",
+                    material: "",
+                    color: "",
+                    technician: "",
+                  });
+                })
+              }
+            >
+              {pending ? ro.common.loading : ro.patients.save}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {prosthetics.length === 0 ? (
+        <p className="py-6 text-center text-muted-foreground">
+          {ro.fisa.noProsthetics}
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.sessionDate}</th>
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticPlan}</th>
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticMaterial}</th>
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticColor}</th>
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticTechnician}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {prosthetics.map((p) => (
+                <tr key={p.id} className="border-b last:border-0">
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    {new Date(p.work_date).toLocaleDateString("ro-RO")}
+                  </td>
+                  <td className="px-4 py-2.5">{p.plan}</td>
+                  <td className="px-4 py-2.5">{p.material}</td>
+                  <td className="px-4 py-2.5">{p.color}</td>
+                  <td className="px-4 py-2.5">{p.technician}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
