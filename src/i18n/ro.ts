@@ -113,6 +113,8 @@ export const ro = {
     noSearchResults: "Nimic găsit pentru căutarea ta.",
     prosthetics: "Lucrări protetice",
     addProsthetic: "Adaugă lucrare",
+    editProsthetic: "Editează lucrarea",
+    actions: "Acțiuni",
     prostheticPlan: "Plan terapeutic",
     prostheticMaterial: "Material",
     prostheticColor: "Culoare",

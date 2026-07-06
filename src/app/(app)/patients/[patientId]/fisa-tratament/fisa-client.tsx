@@ -42,10 +42,12 @@ import {
   addProstheticWork,
   addReminder,
   addSession,
+  deleteProstheticWork,
   deleteReminder,
   deleteSession,
   dismissAlert,
   setToothState,
+  updateProstheticWork,
   updateSession,
 } from "./actions";
 
@@ -229,8 +231,10 @@ export function FisaClient({
   }, [sessions, query, toothFilter]);
 
   /**
-   * Click pe dinte: toggle simplu; cu Shift selectează intervalul
-   * de la ultimul dinte apăsat până la cel curent.
+   * Click simplu pe dinte: selectează doar acel dinte (îl deselectează
+   * pe cel precedent); click din nou pe același dinte îl deselectează.
+   * Shift+click adaugă intervalul de la ultimul dinte apăsat până la
+   * cel curent (util pentru punți / lucrări pe mai mulți dinți).
    */
   function handleToothClick(code: string, opts: { shiftKey: boolean }) {
     const apply = (prev: string[]): string[] => {
@@ -240,9 +244,9 @@ export function FisaClient({
         const range = ALL_TEETH.slice(Math.min(a, b), Math.max(a, b) + 1);
         return [...new Set([...prev, ...range])];
       }
-      return prev.includes(code)
-        ? prev.filter((t) => t !== code)
-        : [...prev, code];
+      // Click simplu: dacă era deja singurul selectat, deselectează; altfel
+      // înlocuiește selecția cu acest dinte.
+      return prev.length === 1 && prev[0] === code ? [] : [code];
     };
 
     if (formOpen) {
@@ -1196,6 +1200,18 @@ function ToothDialog({
 
 // ---------- Lucrări protetice ----------
 
+type ProstheticForm = {
+  work_date: string;
+  plan: string;
+  material: string;
+  color: string;
+  technician: string;
+};
+
+function emptyProstheticForm(): ProstheticForm {
+  return { work_date: today(), plan: "", material: "", color: "", technician: "" };
+}
+
 function ProstheticsSection({
   patientId,
   prosthetics,
@@ -1204,17 +1220,55 @@ function ProstheticsSection({
   prosthetics: Prosthetic[];
 }) {
   const [formOpen, setFormOpen] = useState(false);
+  // id-ul lucrării în curs de editare (null = adăugare nouă)
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [form, setForm] = useState({
-    work_date: today(),
-    plan: "",
-    material: "",
-    color: "",
-    technician: "",
-  });
+  const [form, setForm] = useState<ProstheticForm>(emptyProstheticForm());
 
-  function set(field: keyof typeof form, value: string) {
+  function set(field: keyof ProstheticForm, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function openAdd() {
+    setEditingId(null);
+    setForm(emptyProstheticForm());
+    setFormOpen(true);
+  }
+
+  function openEdit(p: Prosthetic) {
+    setEditingId(p.id);
+    setForm({
+      work_date: p.work_date,
+      plan: p.plan ?? "",
+      material: p.material ?? "",
+      color: p.color ?? "",
+      technician: p.technician ?? "",
+    });
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setForm(emptyProstheticForm());
+  }
+
+  function save() {
+    const payload = {
+      work_date: form.work_date,
+      plan: form.plan.trim() || null,
+      material: form.material.trim() || null,
+      color: form.color.trim() || null,
+      technician: form.technician.trim() || null,
+    };
+    startTransition(async () => {
+      if (editingId) {
+        await updateProstheticWork(patientId, editingId, payload);
+      } else {
+        await addProstheticWork(patientId, payload);
+      }
+      closeForm();
+    });
   }
 
   return (
@@ -1223,7 +1277,7 @@ function ProstheticsSection({
         <h2 className="text-xl">{ro.fisa.prosthetics}</h2>
         <Button
           variant={formOpen ? "outline" : "default"}
-          onClick={() => setFormOpen((v) => !v)}
+          onClick={() => (formOpen ? closeForm() : openAdd())}
         >
           {formOpen ? ro.patients.cancel : (
             <>
@@ -1235,66 +1289,53 @@ function ProstheticsSection({
       </div>
 
       {formOpen && (
-        <div className="rounded-2xl border-2 border-primary/25 bg-card p-4 shadow-sm grid gap-3 sm:grid-cols-2 sm:p-5">
-          <div className="space-y-2">
-            <Label>{ro.fisa.sessionDate}</Label>
-            <DateField
-              value={form.work_date}
-              onChange={(v) => set("work_date", v)}
-            />
+        <div className="rounded-2xl border-2 border-primary/25 bg-card p-4 shadow-sm space-y-3 sm:p-5">
+          <h3 className="text-lg">
+            {editingId ? ro.fisa.editProsthetic : ro.fisa.addProsthetic}
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{ro.fisa.sessionDate}</Label>
+              <DateField
+                value={form.work_date}
+                onChange={(v) => set("work_date", v)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{ro.fisa.prostheticPlan}</Label>
+              <Input
+                value={form.plan}
+                onChange={(e) => set("plan", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{ro.fisa.prostheticMaterial}</Label>
+              <Input
+                value={form.material}
+                onChange={(e) => set("material", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{ro.fisa.prostheticColor}</Label>
+              <Input
+                value={form.color}
+                onChange={(e) => set("color", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{ro.fisa.prostheticTechnician}</Label>
+              <Input
+                value={form.technician}
+                onChange={(e) => set("technician", e.target.value)}
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>{ro.fisa.prostheticPlan}</Label>
-            <Input
-              value={form.plan}
-              onChange={(e) => set("plan", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{ro.fisa.prostheticMaterial}</Label>
-            <Input
-              value={form.material}
-              onChange={(e) => set("material", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{ro.fisa.prostheticColor}</Label>
-            <Input
-              value={form.color}
-              onChange={(e) => set("color", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{ro.fisa.prostheticTechnician}</Label>
-            <Input
-              value={form.technician}
-              onChange={(e) => set("technician", e.target.value)}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  await addProstheticWork(patientId, {
-                    work_date: form.work_date,
-                    plan: form.plan.trim() || null,
-                    material: form.material.trim() || null,
-                    color: form.color.trim() || null,
-                    technician: form.technician.trim() || null,
-                  });
-                  setFormOpen(false);
-                  setForm({
-                    work_date: today(),
-                    plan: "",
-                    material: "",
-                    color: "",
-                    technician: "",
-                  });
-                })
-              }
-            >
+          <div className="flex gap-2">
+            <Button disabled={pending} onClick={save}>
               {pending ? ro.common.loading : ro.patients.save}
+            </Button>
+            <Button variant="outline" onClick={closeForm}>
+              {ro.patients.cancel}
             </Button>
           </div>
         </div>
@@ -1314,18 +1355,48 @@ function ProstheticsSection({
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticMaterial}</th>
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticColor}</th>
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticTechnician}</th>
+                <th className="px-4 py-2.5 font-medium text-right">
+                  {ro.fisa.actions}
+                </th>
               </tr>
             </thead>
             <tbody>
               {prosthetics.map((p) => (
                 <tr key={p.id} className="border-b last:border-0">
                   <td className="px-4 py-2.5 whitespace-nowrap">
-                    {new Date(p.work_date).toLocaleDateString("ro-RO")}
+                    {new Date(p.work_date + "T00:00:00").toLocaleDateString("ro-RO")}
                   </td>
                   <td className="px-4 py-2.5">{p.plan}</td>
                   <td className="px-4 py-2.5">{p.material}</td>
                   <td className="px-4 py-2.5">{p.color}</td>
                   <td className="px-4 py-2.5">{p.technician}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title={ro.common.edit}
+                        onClick={() => openEdit(p)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title={ro.common.delete}
+                        disabled={pending}
+                        onClick={() => {
+                          if (confirm(ro.common.deleteConfirm)) {
+                            startTransition(() =>
+                              deleteProstheticWork(patientId, p.id)
+                            );
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

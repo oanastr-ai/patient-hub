@@ -290,3 +290,29 @@ export async function addProstheticWork(
   if (error) throw new Error(error.message);
   revalidatePath(fisaPath(patientId));
 }
+
+export async function updateProstheticWork(
+  patientId: string,
+  workId: string,
+  input: z.infer<typeof prostheticSchema>
+) {
+  const parsed = prostheticSchema.parse(input);
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("prosthetic_works")
+    .update(parsed)
+    .eq("id", workId);
+  if (error) throw new Error(error.message);
+  revalidatePath(fisaPath(patientId));
+}
+
+export async function deleteProstheticWork(patientId: string, workId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("prosthetic_works")
+    .delete()
+    .eq("id", workId);
+  if (error) throw new Error(error.message);
+  revalidatePath(fisaPath(patientId));
+}
