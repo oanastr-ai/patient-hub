@@ -233,16 +233,26 @@ export function FisaClient({
   /**
    * Click simplu pe dinte: selectează doar acel dinte (îl deselectează
    * pe cel precedent); click din nou pe același dinte îl deselectează.
-   * Shift+click adaugă intervalul de la ultimul dinte apăsat până la
-   * cel curent (util pentru punți / lucrări pe mai mulți dinți).
+   * Shift+click adaugă intervalul de la ultimul dinte apăsat până la cel
+   * curent (util pentru punți). Ctrl/Cmd+click adaugă sau scoate un dinte
+   * individual din selecție (dinți răzleți).
    */
-  function handleToothClick(code: string, opts: { shiftKey: boolean }) {
+  function handleToothClick(
+    code: string,
+    opts: { shiftKey: boolean; ctrlKey: boolean }
+  ) {
     const apply = (prev: string[]): string[] => {
       if (opts.shiftKey && lastClickedTooth && lastClickedTooth !== code) {
         const a = ALL_TEETH.indexOf(lastClickedTooth);
         const b = ALL_TEETH.indexOf(code);
         const range = ALL_TEETH.slice(Math.min(a, b), Math.max(a, b) + 1);
         return [...new Set([...prev, ...range])];
+      }
+      if (opts.ctrlKey) {
+        // Toggle individual, păstrând restul selecției.
+        return prev.includes(code)
+          ? prev.filter((t) => t !== code)
+          : [...prev, code];
       }
       // Click simplu: dacă era deja singurul selectat, deselectează; altfel
       // înlocuiește selecția cu acest dinte.

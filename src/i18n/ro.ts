@@ -82,7 +82,7 @@ export const ro = {
     dismissAlert: "Elimină",
     dentalChart: "Oglinda dentară",
     chartHint:
-      "Atinge un dinte pentru a filtra ședințele lui; atinge din nou pentru a renunța.",
+      "Atinge un dinte pentru a filtra ședințele lui. Shift+click = interval, Ctrl+click = mai mulți dinți răzleți.",
     toothFilterLabel: "Dinte",
     toothDetails: "stare & istoric",
     clearFilter: "Șterge filtrul",
@@ -104,7 +104,8 @@ export const ro = {
     procedureName: "Numele manoperei",
     category: "Categorie",
     teeth: "Dinți",
-    selectTeeth: "Atinge dinții pe oglinda dentară pentru a-i selecta",
+    selectTeeth:
+      "Atinge dinții pe oglinda dentară pentru a-i selecta. Shift+click = interval, Ctrl+click = dinți răzleți.",
     noTeeth: "fără dinte specific",
     itemNote: "Notiță",
     sessionNotes: "Notițe ședință",

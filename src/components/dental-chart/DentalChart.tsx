@@ -67,7 +67,10 @@ function Tooth({
   labelAbove: boolean;
   status: ToothStatus;
   selected: boolean;
-  onClick?: (code: string, opts: { shiftKey: boolean }) => void;
+  onClick?: (
+    code: string,
+    opts: { shiftKey: boolean; ctrlKey: boolean }
+  ) => void;
 }) {
   const index = (UPPER.includes(code) ? UPPER : LOWER).indexOf(code);
   const x = toothX(index);
@@ -77,7 +80,10 @@ function Tooth({
     <g
       onClick={(e) => {
         e.stopPropagation();
-        onClick?.(code, { shiftKey: e.shiftKey });
+        onClick?.(code, {
+          shiftKey: e.shiftKey,
+          ctrlKey: e.ctrlKey || e.metaKey,
+        });
       }}
       className={cn(onClick && "cursor-pointer")}
       role={onClick ? "button" : undefined}
@@ -132,7 +138,10 @@ export function DentalChart({
 }: {
   states?: ToothStateMap;
   selected?: string[];
-  onToothClick?: (code: string, opts: { shiftKey: boolean }) => void;
+  onToothClick?: (
+    code: string,
+    opts: { shiftKey: boolean; ctrlKey: boolean }
+  ) => void;
   /** Click pe zona goală a odontogramei (deselectare). */
   onBackgroundClick?: () => void;
   className?: string;
