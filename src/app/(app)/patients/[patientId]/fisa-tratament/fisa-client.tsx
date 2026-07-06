@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
   BellPlus,
+  BellRing,
   ChevronDown,
   Info,
   OctagonAlert,
@@ -25,6 +26,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DateField } from "@/components/ui/date-field";
+import { ReminderEditDialog } from "@/components/reminder-edit-dialog";
+import { relativeDue } from "@/lib/dates";
 import {
   ALL_TEETH,
   DentalChart,
@@ -39,6 +42,7 @@ import {
   addProstheticWork,
   addReminder,
   addSession,
+  deleteReminder,
   deleteSession,
   dismissAlert,
   setToothState,
@@ -71,6 +75,13 @@ type Prosthetic = {
   material: string | null;
   color: string | null;
   technician: string | null;
+};
+type Reminder = {
+  id: string;
+  session_id: string | null;
+  due_date: string;
+  message_ro: string;
+  notify_patient: boolean;
 };
 
 type DraftItem = {
@@ -136,6 +147,7 @@ export function FisaClient({
   categories,
   procedures: initialProcedures,
   prosthetics,
+  reminders,
 }: {
   patient: { id: string; first_name: string; last_name: string };
   alerts: Alert[];
@@ -145,6 +157,7 @@ export function FisaClient({
   categories: Category[];
   procedures: Procedure[];
   prosthetics: Prosthetic[];
+  reminders: Reminder[];
 }) {
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -651,6 +664,66 @@ export function FisaClient({
                           {s.notes}
                         </p>
                       )}
+                      {/* Reminderele ședinței: countdown + mesaj + editare/ștergere */}
+                      {reminders
+                        .filter((r) => r.session_id === s.id)
+                        .map((r) => {
+                          const rel = relativeDue(r.due_date);
+                          return (
+                            <div
+                              key={r.id}
+                              className={cn(
+                                "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm",
+                                rel.overdue
+                                  ? "border-red-400/60 bg-red-50 dark:bg-red-950/40"
+                                  : "border-primary/30 bg-accent/50"
+                              )}
+                            >
+                              <BellRing
+                                className={cn(
+                                  "h-4 w-4 shrink-0",
+                                  rel.overdue ? "text-red-600" : "text-primary"
+                                )}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium">{r.message_ro}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    r.due_date + "T00:00:00"
+                                  ).toLocaleDateString("ro-RO")}
+                                  {" — "}
+                                  <span
+                                    className={cn(
+                                      "font-semibold",
+                                      rel.overdue ? "text-red-600" : "text-primary"
+                                    )}
+                                  >
+                                    {rel.label}
+                                  </span>
+                                </p>
+                              </div>
+                              <ReminderEditDialog
+                                reminder={r}
+                                patientId={patient.id}
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                title={ro.common.delete}
+                                disabled={pending}
+                                onClick={() => {
+                                  if (confirm(ro.common.deleteConfirm)) {
+                                    startTransition(() =>
+                                      deleteReminder(r.id, patient.id)
+                                    );
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        })}
                       <div className="flex flex-wrap gap-2 pt-1">
                         <Button
                           size="sm"

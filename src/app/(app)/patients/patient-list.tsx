@@ -46,7 +46,7 @@ export function PatientList({ patients }: { patients: PatientRow[] }) {
             className="pl-9"
           />
         </div>
-        <Button render={<Link href="/patients/new" />}>
+        <Button nativeButton={false} render={<Link href="/patients/new" />}>
           <UserPlus className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">{ro.patients.add}</span>
         </Button>

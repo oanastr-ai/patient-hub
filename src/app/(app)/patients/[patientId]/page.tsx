@@ -54,6 +54,7 @@ export default async function PatientHubPage({
         <Button
           variant="outline"
           size="sm"
+          nativeButton={false}
           render={<Link href={`/patients/${patient.id}/edit`} />}
         >
           <Pencil className="h-4 w-4 md:mr-2" />

@@ -19,6 +19,7 @@ export default async function FisaTratamentPage({
     { data: categories },
     { data: procedures },
     { data: prosthetics },
+    { data: reminders },
   ] = await Promise.all([
     supabase
       .from("patients")
@@ -64,6 +65,12 @@ export default async function FisaTratamentPage({
       .select("id, work_date, plan, material, color, technician")
       .eq("patient_id", patientId)
       .order("work_date", { ascending: false }),
+    supabase
+      .from("reminders")
+      .select("id, session_id, due_date, message_ro, notify_patient")
+      .eq("patient_id", patientId)
+      .eq("status", "pending")
+      .order("due_date"),
   ]);
 
   if (!patient) notFound();
@@ -78,6 +85,7 @@ export default async function FisaTratamentPage({
       categories={categories ?? []}
       procedures={procedures ?? []}
       prosthetics={prosthetics ?? []}
+      reminders={reminders ?? []}
     />
   );
 }

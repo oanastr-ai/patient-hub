@@ -222,6 +222,38 @@ export async function addReminder(
   revalidatePath("/dashboard");
 }
 
+export async function updateReminder(
+  reminderId: string,
+  patientId: string,
+  dueDate: string,
+  message: string,
+  notifyPatient: boolean
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("reminders")
+    .update({
+      due_date: dueDate,
+      message_ro: message.trim(),
+      notify_patient: notifyPatient,
+    })
+    .eq("id", reminderId);
+  if (error) throw new Error(error.message);
+  revalidatePath(fisaPath(patientId));
+  revalidatePath("/dashboard");
+}
+
+export async function deleteReminder(reminderId: string, patientId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("reminders")
+    .delete()
+    .eq("id", reminderId);
+  if (error) throw new Error(error.message);
+  revalidatePath(fisaPath(patientId));
+  revalidatePath("/dashboard");
+}
+
 export async function completeReminder(reminderId: string) {
   const supabase = await createClient();
   const { error } = await supabase

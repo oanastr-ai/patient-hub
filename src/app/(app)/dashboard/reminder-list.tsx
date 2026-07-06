@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { BellRing, Check, User } from "lucide-react";
+import { BellRing, Check, Trash2, User } from "lucide-react";
 import { ro } from "@/i18n/ro";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { completeReminder } from "@/app/(app)/patients/[patientId]/fisa-tratament/actions";
+import { ReminderEditDialog } from "@/components/reminder-edit-dialog";
+import { relativeDue } from "@/lib/dates";
+import {
+  completeReminder,
+  deleteReminder,
+} from "@/app/(app)/patients/[patientId]/fisa-tratament/actions";
 
 export type ReminderRow = {
   id: string;
@@ -15,16 +20,6 @@ export type ReminderRow = {
   notify_patient: boolean;
   patient: { id: string; first_name: string; last_name: string } | null;
 };
-
-function relativeLabel(dueDate: string) {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  const diff = Math.round((due.getTime() - now.getTime()) / 86400000);
-  if (diff < 0) return { label: ro.reminders.overdue, overdue: true };
-  if (diff === 0) return { label: ro.reminders.today, overdue: false };
-  return { label: ro.reminders.inDays(diff), overdue: false };
-}
 
 export function ReminderList({ reminders }: { reminders: ReminderRow[] }) {
   const [pending, startTransition] = useTransition();
@@ -40,7 +35,7 @@ export function ReminderList({ reminders }: { reminders: ReminderRow[] }) {
   return (
     <ul className="space-y-2">
       {reminders.map((r) => {
-        const rel = relativeLabel(r.due_date);
+        const rel = relativeDue(r.due_date);
         return (
           <li
             key={r.id}
@@ -67,9 +62,14 @@ export function ReminderList({ reminders }: { reminders: ReminderRow[] }) {
                   </Link>
                 )}
                 {" · "}
-                {new Date(r.due_date).toLocaleDateString("ro-RO")}
+                {new Date(r.due_date + "T00:00:00").toLocaleDateString("ro-RO")}
                 {" — "}
-                <span className={cn(rel.overdue && "font-semibold text-red-600")}>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    rel.overdue ? "text-red-600" : "text-primary"
+                  )}
+                >
                   {rel.label}
                 </span>
                 {r.notify_patient && (
@@ -80,15 +80,35 @@ export function ReminderList({ reminders }: { reminders: ReminderRow[] }) {
                 )}
               </p>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() => startTransition(() => completeReminder(r.id))}
-            >
-              <Check className="h-3.5 w-3.5 mr-1" />
-              {ro.reminders.markDone}
-            </Button>
+            <div className="flex shrink-0 gap-1.5">
+              {r.patient && (
+                <ReminderEditDialog reminder={r} patientId={r.patient.id} />
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                title={ro.common.delete}
+                disabled={pending}
+                onClick={() => {
+                  if (confirm(ro.common.deleteConfirm)) {
+                    startTransition(() =>
+                      deleteReminder(r.id, r.patient?.id ?? "")
+                    );
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => startTransition(() => completeReminder(r.id))}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" />
+                {ro.reminders.markDone}
+              </Button>
+            </div>
           </li>
         );
       })}

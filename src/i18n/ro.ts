@@ -55,6 +55,7 @@ export const ro = {
     message: "Mesaj (ex: control implant, follow-up)",
     notifyPatient: "De notificat și pacientul",
     markDone: "Rezolvat",
+    edit: "Editează reminderul",
     empty: "Niciun reminder apropiat.",
     upcoming: "Remindere apropiate",
     overdue: "întârziat",
@@ -118,7 +119,7 @@ export const ro = {
     prostheticTechnician: "Tehnician",
     noProsthetics: "Nicio lucrare protetică încă.",
     statusLabels: {
-      healthy: "Sănătos",
+      healthy: "Integru",
       missing: "Absent",
       implant: "Implant",
       crown: "Coroană",
