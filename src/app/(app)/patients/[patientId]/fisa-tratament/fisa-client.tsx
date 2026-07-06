@@ -316,11 +316,29 @@ export function FisaClient({
   }
 
   function saveSession() {
+    // Include și manopera aflată în dropdown dar neadăugată încă în listă,
+    // ca să nu se piardă dacă medicul apasă direct „Salvează".
+    let finalItems = items;
+    const pendingProc = procedures.find((p) => p.id === draftProcedureId);
+    if (pendingProc) {
+      finalItems = [
+        ...items,
+        {
+          procedure_id: pendingProc.id,
+          procedure_name: pendingProc.name_ro,
+          tooth_codes: [...draftTeeth].sort(),
+          note: draftNote.trim(),
+        },
+      ];
+    }
+
+    if (finalItems.length === 0) return;
+
     const payload = {
       session_date: sessionDate,
       doctor_id: doctorId || null,
       notes: sessionNotes.trim() || null,
-      items: items.map((i) => ({
+      items: finalItems.map((i) => ({
         procedure_id: i.procedure_id,
         tooth_codes: i.tooth_codes,
         note: i.note || null,
@@ -580,7 +598,7 @@ export function FisaClient({
             <div className="flex gap-2">
               <Button
                 onClick={saveSession}
-                disabled={pending || items.length === 0}
+                disabled={pending || (items.length === 0 && !draftProcedureId)}
               >
                 {pending ? ro.common.loading : ro.patients.save}
               </Button>
