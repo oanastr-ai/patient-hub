@@ -4,11 +4,76 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicId } from "@/lib/clinic";
+import { procedureToToothStatus } from "@/lib/procedure-status";
 
 const TOOTH_CODE = /^[1-4][1-8]$/;
 
 function fisaPath(patientId: string) {
   return `/patients/${patientId}/fisa-tratament`;
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type SessionItemInput = {
+  procedure_id: string;
+  tooth_codes: string[];
+  note: string | null;
+};
+
+/**
+ * Actualizează odontograma pe baza manoperelor aplicate pe dinți:
+ * fiecare manoperă care produce o stare (obturație → obturat, extracție →
+ * absent, coroană → coroană etc.) setează starea dinților ei. În aceeași
+ * ședință, ultima manoperă pe un dinte are prioritate.
+ */
+async function applyToothStatesFromItems(
+  supabase: SupabaseServerClient,
+  clinicId: string,
+  patientId: string,
+  sessionId: string,
+  items: SessionItemInput[]
+) {
+  const withTeeth = items.filter((i) => i.tooth_codes.length > 0);
+  if (withTeeth.length === 0) return;
+
+  const procIds = [...new Set(withTeeth.map((i) => i.procedure_id))];
+  const { data: procRows } = await supabase
+    .from("procedures")
+    .select("id, name_ro")
+    .in("id", procIds);
+  const nameById = new Map((procRows ?? []).map((p) => [p.id, p.name_ro]));
+
+  // Dedup pe cod de dinte (ultima manoperă câștigă) ca upsert-ul să nu
+  // atingă același rând de două ori într-o singură comandă.
+  const byTooth = new Map<
+    string,
+    {
+      clinic_id: string;
+      patient_id: string;
+      tooth_code: string;
+      status: string;
+      updated_from_session_id: string;
+    }
+  >();
+
+  for (const item of withTeeth) {
+    const status = procedureToToothStatus(nameById.get(item.procedure_id) ?? "");
+    if (!status) continue;
+    for (const tooth of item.tooth_codes) {
+      byTooth.set(tooth, {
+        clinic_id: clinicId,
+        patient_id: patientId,
+        tooth_code: tooth,
+        status,
+        updated_from_session_id: sessionId,
+      });
+    }
+  }
+
+  if (byTooth.size === 0) return;
+  const { error } = await supabase
+    .from("tooth_states")
+    .upsert([...byTooth.values()], { onConflict: "patient_id,tooth_code" });
+  if (error) throw new Error(error.message);
 }
 
 // ---------------- Ședințe ----------------
@@ -60,6 +125,14 @@ export async function addSession(
   );
   if (itemsError) throw new Error(itemsError.message);
 
+  await applyToothStatesFromItems(
+    supabase,
+    clinicId,
+    patientId,
+    session.id,
+    parsed.items
+  );
+
   revalidatePath(fisaPath(patientId));
 }
 
@@ -99,6 +172,14 @@ export async function updateSession(
     }))
   );
   if (itemsError) throw new Error(itemsError.message);
+
+  await applyToothStatesFromItems(
+    supabase,
+    clinicId,
+    patientId,
+    sessionId,
+    parsed.items
+  );
 
   revalidatePath(fisaPath(patientId));
 }
