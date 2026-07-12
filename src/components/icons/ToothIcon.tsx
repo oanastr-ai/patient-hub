@@ -5,7 +5,7 @@ import type { SVGProps } from "react";
  * Folosită pentru secțiunea „Fișa de tratament".
  */
 export function ToothIcon({
-  strokeWidth = 1.4,
+  strokeWidth = 2,
   ...props
 }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) {
   return (
