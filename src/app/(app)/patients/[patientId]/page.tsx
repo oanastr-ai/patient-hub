@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import {
   ClipboardList,
   FileSignature,
-  Stethoscope,
   Camera,
   ScanLine,
   Pencil,
@@ -12,11 +11,12 @@ import { createClient } from "@/lib/supabase/server";
 import { ro } from "@/i18n/ro";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ToothIcon } from "@/components/icons/ToothIcon";
 
 const sections = [
   { slug: "chestionare", label: ro.patientHub.chestionare, icon: ClipboardList },
   { slug: "plan-tratament", label: ro.patientHub.planTratament, icon: FileSignature },
-  { slug: "fisa-tratament", label: ro.patientHub.fisaTratament, icon: Stethoscope },
+  { slug: "fisa-tratament", label: ro.patientHub.fisaTratament, icon: ToothIcon },
   { slug: "fotografii", label: ro.patientHub.fotografii, icon: Camera },
   { slug: "radiografii", label: ro.patientHub.radiografii, icon: ScanLine },
 ];
