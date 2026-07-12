@@ -183,6 +183,25 @@ export function FisaClient({
   const [draftTeeth, setDraftTeeth] = useState<string[]>([]);
   const [draftNote, setDraftNote] = useState("");
 
+  // Reminder opțional atașat direct ședinței noi (etapa următoare)
+  const [remOn, setRemOn] = useState(false);
+  const [remAmount, setRemAmount] = useState("30");
+  const [remUnit, setRemUnit] = useState<"days" | "months">("days");
+  const [remManualDate, setRemManualDate] = useState<string | null>(null);
+  const [remMessage, setRemMessage] = useState("");
+  const [remNotify, setRemNotify] = useState(true);
+
+  // Data scadentă a reminderului: calculată din data ședinței + interval,
+  // dar poate fi suprascrisă manual din calendar.
+  const remComputedDate = useMemo(() => {
+    const d = new Date(sessionDate + "T00:00:00");
+    const n = parseInt(remAmount, 10) || 0;
+    if (remUnit === "months") d.setMonth(d.getMonth() + n);
+    else d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }, [sessionDate, remAmount, remUnit]);
+  const remDueDate = remManualDate ?? remComputedDate;
+
   const stateMap: ToothStateMap = useMemo(() => {
     const map: ToothStateMap = {};
     for (const t of toothStates) map[t.tooth_code] = t.status as ToothStatus;
@@ -287,6 +306,12 @@ export function FisaClient({
     setDraftProcedureId("");
     setDraftTeeth([]);
     setDraftNote("");
+    setRemOn(false);
+    setRemAmount("30");
+    setRemUnit("days");
+    setRemManualDate(null);
+    setRemMessage("");
+    setRemNotify(true);
   }
 
   function startEdit(s: Session) {
@@ -344,6 +369,16 @@ export function FisaClient({
 
     if (finalItems.length === 0) return;
 
+    // Reminder atașat, doar la ședință nouă și dacă are mesaj
+    const reminder =
+      !editingId && remOn && remMessage.trim()
+        ? {
+            due_date: remDueDate,
+            message: remMessage.trim(),
+            notify_patient: remNotify,
+          }
+        : null;
+
     const payload = {
       session_date: sessionDate,
       doctor_id: doctorId || null,
@@ -353,6 +388,7 @@ export function FisaClient({
         tooth_codes: i.tooth_codes,
         note: i.note || null,
       })),
+      reminder,
     };
     startTransition(async () => {
       if (editingId) {
@@ -604,6 +640,93 @@ export function FisaClient({
                 className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
             </div>
+
+            {/* Reminder pentru etapa următoare — doar la ședință nouă */}
+            {!editingId && (
+              <div className="space-y-3 rounded-xl border border-primary/20 bg-accent/30 p-3.5">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={remOn}
+                    onChange={(e) => setRemOn(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--primary)]"
+                  />
+                  <BellPlus className="h-4 w-4 text-primary" />
+                  {ro.reminders.addForNext}
+                </label>
+
+                {remOn && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="sess_rem_amount">
+                          {ro.reminders.interval}
+                        </Label>
+                        <div className="flex gap-1.5">
+                          <Input
+                            id="sess_rem_amount"
+                            type="number"
+                            min={1}
+                            value={remAmount}
+                            onChange={(e) => {
+                              setRemAmount(e.target.value);
+                              setRemManualDate(null);
+                            }}
+                            className="w-20"
+                          />
+                          <select
+                            value={remUnit}
+                            onChange={(e) => {
+                              setRemUnit(e.target.value as "days" | "months");
+                              setRemManualDate(null);
+                            }}
+                            className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-sm"
+                            aria-label={ro.reminders.unit}
+                          >
+                            <option value="days">{ro.reminders.unitDays}</option>
+                            <option value="months">
+                              {ro.reminders.unitMonths}
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sess_rem_date">
+                          {ro.reminders.dueDate}
+                        </Label>
+                        <DateField
+                          id="sess_rem_date"
+                          value={remDueDate}
+                          min={sessionDate}
+                          onChange={(v) => setRemManualDate(v || null)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sess_rem_msg">
+                        {ro.reminders.message}
+                      </Label>
+                      <textarea
+                        id="sess_rem_msg"
+                        rows={2}
+                        value={remMessage}
+                        onChange={(e) => setRemMessage(e.target.value)}
+                        className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={remNotify}
+                        onChange={(e) => setRemNotify(e.target.checked)}
+                        className="h-4 w-4 accent-[var(--primary)]"
+                      />
+                      {ro.reminders.notifyPatient}
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button

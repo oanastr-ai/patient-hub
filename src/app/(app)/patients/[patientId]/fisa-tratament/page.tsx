@@ -48,8 +48,10 @@ export default async function FisaTratamentPage({
       .eq("patient_id", patientId),
     supabase
       .from("doctors")
-      .select("id, full_name")
+      .select("id, full_name, is_collaborator")
+      // Medicul cabinetului (necolaborator) primul, apoi colaboratorii alfabetic
       .eq("is_active", true)
+      .order("is_collaborator")
       .order("full_name"),
     supabase
       .from("procedure_categories")

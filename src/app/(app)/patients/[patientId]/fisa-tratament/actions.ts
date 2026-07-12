@@ -91,6 +91,15 @@ const sessionSchema = z.object({
       })
     )
     .min(1),
+  // Reminder opțional creat odată cu ședința (pentru etapa următoare)
+  reminder: z
+    .object({
+      due_date: z.string().min(1),
+      message: z.string().trim().min(1),
+      notify_patient: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export async function addSession(
@@ -132,6 +141,19 @@ export async function addSession(
     session.id,
     parsed.items
   );
+
+  if (parsed.reminder) {
+    const { error: remError } = await supabase.from("reminders").insert({
+      clinic_id: clinicId,
+      patient_id: patientId,
+      session_id: session.id,
+      due_date: parsed.reminder.due_date,
+      message_ro: parsed.reminder.message,
+      notify_patient: parsed.reminder.notify_patient,
+    });
+    if (remError) throw new Error(remError.message);
+    revalidatePath("/dashboard");
+  }
 
   revalidatePath(fisaPath(patientId));
 }

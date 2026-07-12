@@ -46,6 +46,7 @@ export const ro = {
   reminders: {
     title: "Remindere",
     add: "Adaugă reminder",
+    addForNext: "Adaugă reminder pentru etapa următoare",
     daysAfter: "Peste câte zile",
     interval: "Peste",
     unit: "Unitate",
