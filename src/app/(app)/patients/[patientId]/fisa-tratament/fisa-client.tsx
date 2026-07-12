@@ -350,6 +350,20 @@ export function FisaClient({
     setDraftNote("");
   }
 
+  /**
+   * Editează o manoperă deja adăugată: o încarcă înapoi în selector
+   * (manoperă + dinți + notiță) și o scoate din listă, ca medicul s-o
+   * modifice și s-o readauge.
+   */
+  function editDraftItem(index: number) {
+    const item = items[index];
+    if (!item) return;
+    setDraftProcedureId(item.procedure_id);
+    setDraftTeeth(item.tooth_codes);
+    setDraftNote(item.note);
+    setItems((prev) => prev.filter((_, j) => j !== index));
+  }
+
   function saveSession() {
     // Include și manopera aflată în dropdown dar neadăugată încă în listă,
     // ca să nu se piardă dacă medicul apasă direct „Salvează".
@@ -557,14 +571,26 @@ export function FisaClient({
                         {item.note}
                       </span>
                     )}
-                    <button
-                      onClick={() =>
-                        setItems((prev) => prev.filter((_, j) => j !== i))
-                      }
-                      className="ml-auto rounded-md p-1 opacity-50 hover:opacity-100"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="ml-auto flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        title={ro.common.edit}
+                        onClick={() => editDraftItem(i)}
+                        className="rounded-md p-1 opacity-50 hover:opacity-100"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        title={ro.common.delete}
+                        onClick={() =>
+                          setItems((prev) => prev.filter((_, j) => j !== i))
+                        }
+                        className="rounded-md p-1 opacity-50 hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
