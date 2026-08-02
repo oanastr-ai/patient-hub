@@ -30,6 +30,7 @@ insert into public.procedures (clinic_id, category_id, name_ro) values
   (null, '10000000-0000-0000-0000-000000000002', 'Chiuretaj'),
   -- Chirurgicale
   (null, '10000000-0000-0000-0000-000000000003', 'Extracție'),
+  (null, '10000000-0000-0000-0000-000000000003', 'Implant'),
   (null, '10000000-0000-0000-0000-000000000003', 'Sinus lift'),
   (null, '10000000-0000-0000-0000-000000000003', 'Grefă'),
   (null, '10000000-0000-0000-0000-000000000003', 'Reconstrucție osoasă'),

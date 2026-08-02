@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
   BellPlus,
@@ -32,9 +32,16 @@ import {
   ALL_TEETH,
   DentalChart,
   formatTooth,
+  rootCount,
+  surfaceRef,
+  SURFACE_STATUSES,
+  type SurfaceKey,
+  type SurfaceStateMap,
+  type SurfaceStatus,
   type ToothStateMap,
   type ToothStatus,
 } from "@/components/dental-chart/DentalChart";
+import { DentalChartLegend } from "@/components/dental-chart/DentalChartLegend";
 import {
   addAlert,
   addDoctor,
@@ -46,7 +53,9 @@ import {
   deleteReminder,
   deleteSession,
   dismissAlert,
+  setToothPeriapical,
   setToothState,
+  setToothSurfaces,
   updateProstheticWork,
   updateSession,
 } from "./actions";
@@ -77,6 +86,8 @@ type Prosthetic = {
   material: string | null;
   color: string | null;
   technician: string | null;
+  tooth_codes: string[] | null;
+  work_type: string | null;
 };
 type Reminder = {
   id: string;
@@ -154,7 +165,13 @@ export function FisaClient({
   patient: { id: string; first_name: string; last_name: string };
   alerts: Alert[];
   sessions: Session[];
-  toothStates: { tooth_code: string; status: string; note: string | null }[];
+  toothStates: {
+    tooth_code: string;
+    status: string;
+    note: string | null;
+    surfaces: Record<string, string> | null;
+    periapical: number[] | null;
+  }[];
   doctors: Doctor[];
   categories: Category[];
   procedures: Procedure[];
@@ -171,6 +188,16 @@ export function FisaClient({
   const [toothFilter, setToothFilter] = useState<string[]>([]);
   const [toothDialog, setToothDialog] = useState<string | null>(null);
   const [lastClickedTooth, setLastClickedTooth] = useState<string | null>(null);
+  // Suprafețele bifate („16:occlusal") + poziția meniului care aplică starea
+  const [pickedSurfaces, setPickedSurfaces] = useState<string[]>([]);
+  const [surfaceMenuPos, setSurfaceMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Formular lucrare protetică: cât e deschis, odontograma îi alege dinții
+  const [prostheticOpen, setProstheticOpen] = useState(false);
+  const [prostheticTeeth, setProstheticTeeth] = useState<string[]>([]);
 
   // Formular ședință (nouă sau în editare)
   const [formOpen, setFormOpen] = useState(false);
@@ -208,11 +235,30 @@ export function FisaClient({
     return map;
   }, [toothStates]);
 
+  const surfaceMap: SurfaceStateMap = useMemo(() => {
+    const map: SurfaceStateMap = {};
+    for (const t of toothStates) {
+      if (t.surfaces && Object.keys(t.surfaces).length > 0) {
+        map[t.tooth_code] = t.surfaces as SurfaceStateMap[string];
+      }
+    }
+    return map;
+  }, [toothStates]);
+
+  const periapicalMap = useMemo(() => {
+    const map: Record<string, number[]> = {};
+    for (const t of toothStates) {
+      if (t.periapical && t.periapical.length > 0) map[t.tooth_code] = t.periapical;
+    }
+    return map;
+  }, [toothStates]);
+
   const expandedSession = sessions.find((s) => s.id === expandedId) ?? null;
 
   // Dinții evidențiați pe odontogramă
   const highlightedTeeth = useMemo(() => {
     if (formOpen) return draftTeeth;
+    if (prostheticOpen) return prostheticTeeth;
     const teeth = new Set<string>(toothFilter);
     if (expandedSession) {
       for (const item of expandedSession.items) {
@@ -220,7 +266,14 @@ export function FisaClient({
       }
     }
     return [...teeth];
-  }, [formOpen, draftTeeth, expandedSession, toothFilter]);
+  }, [
+    formOpen,
+    draftTeeth,
+    prostheticOpen,
+    prostheticTeeth,
+    expandedSession,
+    toothFilter,
+  ]);
 
   // Căutare text + filtru dinte
   const filteredSessions = useMemo(() => {
@@ -280,6 +333,8 @@ export function FisaClient({
 
     if (formOpen) {
       setDraftTeeth(apply);
+    } else if (prostheticOpen) {
+      setProstheticTeeth(apply);
     } else {
       setToothFilter(apply);
       setExpandedId(null);
@@ -287,14 +342,40 @@ export function FisaClient({
     setLastClickedTooth(code);
   }
 
+  /**
+   * Click pe o suprafață din inel: o bifează sau o scoate din selecție. Cât
+   * timp există măcar una bifată, meniul de stări rămâne deschis lângă ultima
+   * atinsă — așa se pot marca mai multe suprafețe dintr-o singură alegere.
+   */
+  function handleSurfaceClick(
+    code: string,
+    surface: SurfaceKey,
+    ev: { clientX: number; clientY: number }
+  ) {
+    const ref = surfaceRef(code, surface);
+    const next = pickedSurfaces.includes(ref)
+      ? pickedSurfaces.filter((r) => r !== ref)
+      : [...pickedSurfaces, ref];
+    setPickedSurfaces(next);
+    setSurfaceMenuPos(next.length > 0 ? { x: ev.clientX, y: ev.clientY } : null);
+  }
+
+  function clearSurfaceSelection() {
+    setPickedSurfaces([]);
+    setSurfaceMenuPos(null);
+  }
+
   /** Click pe zona goală a odontogramei — golește selecția curentă. */
   function handleChartBackgroundClick() {
     if (formOpen) {
       setDraftTeeth([]);
+    } else if (prostheticOpen) {
+      setProstheticTeeth([]);
     } else {
       setToothFilter([]);
     }
     setLastClickedTooth(null);
+    clearSurfaceSelection();
   }
 
   function resetForm() {
@@ -476,15 +557,22 @@ export function FisaClient({
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          {formOpen ? ro.fisa.selectTeeth : ro.fisa.chartHint}
+          {formOpen || prostheticOpen
+            ? ro.fisa.selectTeeth
+            : ro.fisa.chartHint}
         </p>
         <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
           <DentalChart
             states={stateMap}
+            surfaces={surfaceMap}
+            periapical={periapicalMap}
             selected={highlightedTeeth}
+            selectedSurfaces={pickedSurfaces}
             onToothClick={handleToothClick}
+            onSurfaceClick={handleSurfaceClick}
             onBackgroundClick={handleChartBackgroundClick}
           />
+          <DentalChartLegend className="mt-5 border-t pt-4" />
         </div>
       </section>
 
@@ -941,16 +1029,121 @@ export function FisaClient({
       </section>
 
       {/* ---------- Lucrări protetice ---------- */}
-      <ProstheticsSection patientId={patient.id} prosthetics={prosthetics} />
+      <ProstheticsSection
+        patientId={patient.id}
+        prosthetics={prosthetics}
+        formOpen={prostheticOpen}
+        setFormOpen={setProstheticOpen}
+        teeth={prostheticTeeth}
+        setTeeth={setProstheticTeeth}
+      />
 
       {/* ---------- Dialog dinte ---------- */}
       <ToothDialog
         patientId={patient.id}
         toothCode={toothDialog}
         currentStatus={(toothDialog && stateMap[toothDialog]) || "healthy"}
+        periapical={(toothDialog && periapicalMap[toothDialog]) || []}
         sessions={sessions}
         onClose={() => setToothDialog(null)}
       />
+
+      {/* ---------- Meniu suprafețe ---------- */}
+      {surfaceMenuPos && pickedSurfaces.length > 0 && (
+        <SurfaceMenu
+          patientId={patient.id}
+          pos={surfaceMenuPos}
+          picked={pickedSurfaces}
+          onClose={clearSurfaceSelection}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------- Meniu suprafețe ----------
+
+/** Culori de previzualizare, aliniate cu cele din odontogramă. */
+const SURFACE_SWATCH: Record<SurfaceStatus, string> = {
+  healthy: "bg-background",
+  demineralization: "bg-amber-200 dark:bg-amber-900",
+  caries: "bg-red-300 dark:bg-red-900",
+  filling: "bg-blue-300 dark:bg-blue-800",
+  inlay_onlay: "bg-indigo-300 dark:bg-indigo-800",
+  sealant: "bg-emerald-300 dark:bg-emerald-800",
+};
+
+/** '16:occlusal' -> { tooth_code: '16', surface: 'occlusal' } */
+function parseSurfaceRef(ref: string) {
+  const [tooth_code, surface] = ref.split(":");
+  return { tooth_code, surface: surface as SurfaceKey };
+}
+
+function SurfaceMenu({
+  patientId,
+  pos,
+  picked,
+  onClose,
+}: {
+  patientId: string;
+  pos: { x: number; y: number };
+  picked: string[];
+  onClose: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+
+  // Închidere pe Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Poziționare: ținem meniul în ecran
+  const style: React.CSSProperties = {
+    top: Math.min(pos.y + 8, window.innerHeight - 290),
+    left: Math.min(pos.x + 8, window.innerWidth - 210),
+  };
+
+  const refs = picked.map(parseSurfaceRef);
+  const title =
+    refs.length === 1
+      ? `${formatTooth(refs[0].tooth_code)} · ${ro.fisa.surfaceLabels[refs[0].surface]}`
+      : ro.fisa.surfacesSelected(refs.length);
+
+  return (
+    // Fără strat de captare peste ecran: ar intercepta click-urile pe inele și
+    // n-ai mai putea bifa a doua suprafață. Meniul se închide din Escape, din
+    // click pe fundalul odontogramei sau alegând o stare.
+    <div
+      className="fixed z-50 w-52 rounded-xl border bg-popover p-1.5 shadow-lg"
+      style={style}
+    >
+      <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+        {title}
+      </p>
+      <div className="flex flex-col">
+        {SURFACE_STATUSES.map((s) => (
+          <button
+            key={s}
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                await setToothSurfaces(patientId, refs, s);
+                onClose();
+              })
+            }
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50"
+          >
+            <span
+              className={cn("h-3.5 w-3.5 rounded-sm border", SURFACE_SWATCH[s])}
+            />
+            {ro.fisa.surfaceStatusLabels[s]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1271,16 +1464,19 @@ function AddProcedureDialog({
 
 // ---------- Dialog dinte (istoric + stare) ----------
 
+/** Aceeași ordine ca în legendă: de la sănătos, prin patologie, la lucrări. */
 const TOOTH_STATUSES: ToothStatus[] = [
   "healthy",
   "caries",
-  "filling",
   "endo_treated",
+  "filling",
   "veneer",
   "crown",
   "bridge_pontic",
-  "implant",
   "denture",
+  "implant",
+  "implant_crown",
+  "root_remnant",
   "to_extract",
   "missing",
 ];
@@ -1289,16 +1485,27 @@ function ToothDialog({
   patientId,
   toothCode,
   currentStatus,
+  periapical,
   sessions,
   onClose,
 }: {
   patientId: string;
   toothCode: string | null;
   currentStatus: ToothStatus;
+  periapical: number[];
   sessions: Session[];
   onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const roots = toothCode ? rootCount(toothCode) : 0;
+
+  function togglePeriapical(rootIndex: number) {
+    if (!toothCode) return;
+    const next = periapical.includes(rootIndex)
+      ? periapical.filter((r) => r !== rootIndex)
+      : [...periapical, rootIndex];
+    startTransition(() => setToothPeriapical(patientId, toothCode, next));
+  }
 
   const history = useMemo(() => {
     if (!toothCode) return [];
@@ -1349,6 +1556,23 @@ function ToothDialog({
               ))}
             </div>
           </div>
+          {/* Leziunea periapicală se marchează pe rădăcina afectată, nu pe dinte */}
+          <div className="space-y-2">
+            <Label>{ro.fisa.periapical}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {Array.from({ length: roots }, (_, i) => (
+                <Button
+                  key={i}
+                  size="xs"
+                  variant={periapical.includes(i) ? "default" : "outline"}
+                  disabled={pending}
+                  onClick={() => togglePeriapical(i)}
+                >
+                  {roots === 1 ? ro.fisa.rootSingle : ro.fisa.rootLabel(i + 1)}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>{ro.fisa.sessions}</Label>
             {history.length === 0 ? (
@@ -1377,26 +1601,68 @@ function ToothDialog({
 
 // ---------- Lucrări protetice ----------
 
+/** Stările de dinte pe care le poate produce o lucrare protetică. */
+type ProstheticWorkType =
+  | "crown"
+  | "bridge_pontic"
+  | "veneer"
+  | "denture"
+  | "implant"
+  | "implant_crown";
+
+const PROSTHETIC_WORK_TYPES: ProstheticWorkType[] = [
+  "crown",
+  "bridge_pontic",
+  "implant",
+  "implant_crown",
+  "veneer",
+  "denture",
+];
+
+/** Valoarea din baza de date, doar dacă e un tip de lucrare cunoscut. */
+function asWorkType(value: string | null): ProstheticWorkType | "" {
+  return PROSTHETIC_WORK_TYPES.includes(value as ProstheticWorkType)
+    ? (value as ProstheticWorkType)
+    : "";
+}
+
 type ProstheticForm = {
   work_date: string;
   plan: string;
   material: string;
   color: string;
   technician: string;
+  /** "" = lucrarea se consemnează, dar nu schimbă odontograma */
+  work_type: ProstheticWorkType | "";
 };
 
 function emptyProstheticForm(): ProstheticForm {
-  return { work_date: today(), plan: "", material: "", color: "", technician: "" };
+  return {
+    work_date: today(),
+    plan: "",
+    material: "",
+    color: "",
+    technician: "",
+    work_type: "",
+  };
 }
 
 function ProstheticsSection({
   patientId,
   prosthetics,
+  formOpen,
+  setFormOpen,
+  teeth,
+  setTeeth,
 }: {
   patientId: string;
   prosthetics: Prosthetic[];
+  /** Ridicat în părinte: cât e deschis, click-ul pe odontogramă alege dinții. */
+  formOpen: boolean;
+  setFormOpen: (open: boolean) => void;
+  teeth: string[];
+  setTeeth: (teeth: string[]) => void;
 }) {
-  const [formOpen, setFormOpen] = useState(false);
   // id-ul lucrării în curs de editare (null = adăugare nouă)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -1409,6 +1675,7 @@ function ProstheticsSection({
   function openAdd() {
     setEditingId(null);
     setForm(emptyProstheticForm());
+    setTeeth([]);
     setFormOpen(true);
   }
 
@@ -1420,7 +1687,9 @@ function ProstheticsSection({
       material: p.material ?? "",
       color: p.color ?? "",
       technician: p.technician ?? "",
+      work_type: asWorkType(p.work_type),
     });
+    setTeeth(p.tooth_codes ?? []);
     setFormOpen(true);
   }
 
@@ -1428,6 +1697,7 @@ function ProstheticsSection({
     setFormOpen(false);
     setEditingId(null);
     setForm(emptyProstheticForm());
+    setTeeth([]);
   }
 
   function save() {
@@ -1437,6 +1707,8 @@ function ProstheticsSection({
       material: form.material.trim() || null,
       color: form.color.trim() || null,
       technician: form.technician.trim() || null,
+      tooth_codes: [...teeth].sort(),
+      work_type: (form.work_type || null) as ProstheticWorkType | null,
     };
     startTransition(async () => {
       if (editingId) {
@@ -1470,6 +1742,39 @@ function ProstheticsSection({
           <h3 className="text-lg">
             {editingId ? ro.fisa.editProsthetic : ro.fisa.addProsthetic}
           </h3>
+
+          {/* Dinții se aleg direct pe odontogramă cât timp formularul e deschis */}
+          <div className="space-y-2 rounded-xl border border-dashed border-primary/30 p-3.5">
+            <Label>{ro.fisa.prostheticType}</Label>
+            <select
+              value={form.work_type}
+              onChange={(e) => set("work_type", e.target.value)}
+              className="h-8 w-full rounded-lg border border-border bg-background px-2 text-sm"
+            >
+              <option value="">{ro.fisa.prostheticTypeNone}</option>
+              {PROSTHETIC_WORK_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {ro.fisa.statusLabels[t]}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {ro.fisa.teeth}:{" "}
+              {teeth.length > 0 ? (
+                <span className="inline-flex flex-wrap gap-1 align-middle">
+                  {[...teeth].sort().map((t) => (
+                    <ToothChip key={t} code={t} />
+                  ))}
+                </span>
+              ) : (
+                ro.fisa.noTeeth
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {form.work_type ? ro.fisa.prostheticApplies : ro.fisa.prostheticNoChart}
+            </p>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{ro.fisa.sessionDate}</Label>
@@ -1528,6 +1833,7 @@ function ProstheticsSection({
             <thead>
               <tr className="border-b bg-muted/40 text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.sessionDate}</th>
+                <th className="px-4 py-2.5 font-medium">{ro.fisa.teeth}</th>
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticPlan}</th>
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticMaterial}</th>
                 <th className="px-4 py-2.5 font-medium">{ro.fisa.prostheticColor}</th>
@@ -1542,6 +1848,18 @@ function ProstheticsSection({
                 <tr key={p.id} className="border-b last:border-0">
                   <td className="px-4 py-2.5 whitespace-nowrap">
                     {new Date(p.work_date + "T00:00:00").toLocaleDateString("ro-RO")}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex flex-wrap gap-1">
+                      {(p.tooth_codes ?? []).map((t) => (
+                        <ToothChip key={t} code={t} />
+                      ))}
+                    </span>
+                    {p.work_type && (
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        {ro.fisa.statusLabels[p.work_type as ToothStatus]}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5">{p.plan}</td>
                   <td className="px-4 py-2.5">{p.material}</td>

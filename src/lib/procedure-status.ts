@@ -13,6 +13,9 @@ function normalize(s: string) {
  * Maparea manoperelor built-in către starea pe care o produc pe dinte.
  * Manoperele fără efect vizibil pe odontogramă (consultație, igienizare,
  * albire, chiuretaj, ortodonție etc.) lipsesc intenționat — nu schimbă starea.
+ *
+ * Lucrările pe implant trebuie să dea stări de implant, nu de dinte natural:
+ * altfel „Coroană pe implant" ar desena un dinte cu rădăcini, fără fixtură.
  */
 const PROCEDURE_TOOTH_STATUS: Record<string, ToothStatus> = {
   obturatie: "filling",
@@ -21,10 +24,17 @@ const PROCEDURE_TOOTH_STATUS: Record<string, ToothStatus> = {
   fatete: "veneer",
   coroana: "crown",
   punte: "bridge_pontic",
-  "coroana pe implant": "crown",
-  "punte pe implant": "bridge_pontic",
-  "all-on-x": "implant",
   proteza: "denture",
+  // fixtura inserată, încă fără lucrare
+  implant: "implant",
+  // lucrări sprijinite pe implant: fixtură + coroană
+  "coroana pe implant": "implant_crown",
+  "all-on-x": "implant_crown",
+  // la puntea pe implant, dinții selectați formează corpul lucrării; stâlpii pe
+  // implant se marchează separat, din dialogul dintelui
+  "punte pe implant": "bridge_pontic",
+  // reabilitare totală: fiecare dinte selectat primește coroană protetică
+  "full mouth": "crown",
 };
 
 /** Starea de dinte produsă de o manoperă, sau null dacă nu modifică odontograma. */
