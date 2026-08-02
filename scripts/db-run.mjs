@@ -1,7 +1,27 @@
 import postgres from "postgres";
 import { readFileSync } from "fs";
 
-const password = process.env.SUPABASE_DB_PASSWORD;
+/** Citește o cheie din .env.local. Valoarea nu e afișată niciodată. */
+function fromEnvFile(key) {
+  try {
+    const line = readFileSync(".env.local", "utf-8")
+      .split(/\r?\n/)
+      .find((l) => l.trim().startsWith(`${key}=`));
+    if (!line) return null;
+    return line.slice(line.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "");
+  } catch {
+    return null;
+  }
+}
+
+const password =
+  process.env.SUPABASE_DB_PASSWORD || fromEnvFile("SUPABASE_DB_PASSWORD");
+if (!password) {
+  console.error(
+    "Lipsește SUPABASE_DB_PASSWORD (din mediu sau din .env.local)."
+  );
+  process.exit(1);
+}
 const candidates = [
   `postgresql://postgres.gwqlugravtkffrpuvomh:${password}@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
   `postgresql://postgres.gwqlugravtkffrpuvomh:${password}@aws-1-eu-central-1.pooler.supabase.com:5432/postgres`,

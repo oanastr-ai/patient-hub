@@ -2,6 +2,43 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FisaClient } from "./fisa-client";
 
+type ToothStateRow = {
+  tooth_code: string;
+  status: string;
+  note: string | null;
+  surfaces: Record<string, string> | null;
+  periapical: number[] | null;
+};
+
+/**
+ * Stările dinților, tolerant la lipsa coloanei `periapical` (migrarea 0004).
+ * Fără asta, o singură coloană nouă ar face să pice tot select-ul, iar
+ * odontograma s-ar goli în tăcere — marcajele există, dar nu mai sunt citite.
+ */
+async function readToothStates(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  patientId: string
+): Promise<{ data: ToothStateRow[] }> {
+  const full = await supabase
+    .from("tooth_states")
+    .select("tooth_code, status, note, surfaces, periapical")
+    .eq("patient_id", patientId);
+  if (!full.error) return { data: (full.data ?? []) as ToothStateRow[] };
+
+  console.warn(
+    `[fisa] citirea stărilor dinților a eșuat (${full.error.message}); ` +
+      "reîncerc fără `periapical` — rulează migrarea 0004_tooth_states_v2.sql"
+  );
+  const fallback = await supabase
+    .from("tooth_states")
+    .select("tooth_code, status, note, surfaces")
+    .eq("patient_id", patientId);
+  if (fallback.error) throw new Error(fallback.error.message);
+  return {
+    data: (fallback.data ?? []).map((r) => ({ ...r, periapical: null })) as ToothStateRow[],
+  };
+}
+
 export default async function FisaTratamentPage({
   params,
 }: {
@@ -42,10 +79,7 @@ export default async function FisaTratamentPage({
       .eq("patient_id", patientId)
       .order("session_date", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase
-      .from("tooth_states")
-      .select("tooth_code, status, note")
-      .eq("patient_id", patientId),
+    readToothStates(supabase, patientId),
     supabase
       .from("doctors")
       .select("id, full_name, is_collaborator")
@@ -64,7 +98,9 @@ export default async function FisaTratamentPage({
       .order("name_ro"),
     supabase
       .from("prosthetic_works")
-      .select("id, work_date, plan, material, color, technician")
+      .select(
+        "id, work_date, plan, material, color, technician, tooth_codes, work_type"
+      )
       .eq("patient_id", patientId)
       .order("work_date", { ascending: false }),
     supabase
