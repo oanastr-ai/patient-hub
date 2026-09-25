@@ -93,6 +93,13 @@ export type QuestionnaireTemplate = {
   declaration: string[];
   /** Eticheta semnăturii pacientului / declarantului. */
   signatureLabel: string;
+  /**
+   * Fără caseta „De reținut" (ex. acordul pacientului, unde „da" înseamnă
+   * doar că informația a fost dată, nu o problemă de sănătate).
+   */
+  summary?: boolean;
+  /** Pe document apare și ora semnării, nu doar data. */
+  signedTime?: boolean;
   /** Documentul se semnează și de medic, pe aceeași tabletă. */
   doctorSignature?: boolean;
   /** Răspunsurile precompletate din datele pacientului. */

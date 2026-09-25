@@ -1,3 +1,4 @@
+import { acordPacient } from "./acord-pacient";
 import { consimtamant } from "./consimtamant";
 import { stareGenerala } from "./stare-generala";
 import {
@@ -11,7 +12,7 @@ import {
 export * from "./types";
 
 /** Toate versiunile tuturor chestionarelor; ultima versiune a unui cod e cea curentă. */
-const TEMPLATES: QuestionnaireTemplate[] = [stareGenerala, consimtamant];
+const TEMPLATES: QuestionnaireTemplate[] = [stareGenerala, consimtamant, acordPacient];
 
 export const CURRENT_TEMPLATES = TEMPLATES.filter(
   (t) => !TEMPLATES.some((o) => o.code === t.code && o.version > t.version)

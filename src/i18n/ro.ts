@@ -209,6 +209,7 @@ export const ro = {
     signatureMissing: "Vă rugăm să semnați.",
     clearSignature: "Șterge semnătura",
     date: "Data completării",
+    time: "Ora",
     submit: "Semnează și trimite",
     submitting: "Se trimite...",
     thanksTitle: "Vă mulțumim!",

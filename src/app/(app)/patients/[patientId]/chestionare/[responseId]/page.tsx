@@ -55,29 +55,31 @@ export default async function QuestionnaireResponsePage({
         <ResponseActions patientId={patientId} responseId={response.id} />
       </div>
 
-      <Card className="print:hidden">
-        <CardContent className="space-y-3">
-          <h2 className="flex items-center gap-2 font-semibold">
-            <AlertTriangle className="size-4 text-amber-600" />
-            {t.findings}
-          </h2>
-          {findings.length === 0 ? (
-            <p className="text-muted-foreground">{t.noFindings}</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {findings.map((f, i) => (
-                <li
-                  key={i}
-                  className={cn("rounded-lg px-3 py-2", f.alert ? "bg-destructive/10" : "bg-muted")}
-                >
-                  <span className={cn("font-medium", f.alert && "text-destructive")}>{f.label}</span>
-                  {f.value !== "da" && <span className="text-foreground/80"> — {f.value}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {template.summary !== false && (
+        <Card className="print:hidden">
+          <CardContent className="space-y-3">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <AlertTriangle className="size-4 text-amber-600" />
+              {t.findings}
+            </h2>
+            {findings.length === 0 ? (
+              <p className="text-muted-foreground">{t.noFindings}</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {findings.map((f, i) => (
+                  <li
+                    key={i}
+                    className={cn("rounded-lg px-3 py-2", f.alert ? "bg-destructive/10" : "bg-muted")}
+                  >
+                    <span className={cn("font-medium", f.alert && "text-destructive")}>{f.label}</span>
+                    {f.value !== "da" && <span className="text-foreground/80"> — {f.value}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <QuestionnaireDocument
         template={template}

@@ -60,6 +60,16 @@ export function QuestionnaireDocument({
           <p>
             <span className="font-semibold">{t.date}:</span>{" "}
             {signedAt ? new Date(signedAt).toLocaleDateString("ro-RO") : t.notAnswered}
+            {signedAt && template.signedTime && (
+              <>
+                {" "}
+                <span className="font-semibold">{t.time}:</span>{" "}
+                {new Date(signedAt).toLocaleTimeString("ro-RO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </>
+            )}
           </p>
           {signatures.map((s) => (
             <div key={s.label} className="text-center">
@@ -102,7 +112,7 @@ function Row({ field, answers, depth }: { field: Field; answers: Answers; depth:
         </dt>
         <dd
           className={cn(
-            "font-semibold",
+            "font-semibold whitespace-pre-line",
             !text && "font-normal text-muted-foreground",
             field.kind === "yesno" && text === "da" && "text-primary"
           )}
