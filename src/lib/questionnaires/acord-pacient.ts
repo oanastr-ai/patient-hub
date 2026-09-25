@@ -104,7 +104,7 @@ export const acordPacient: QuestionnaireTemplate = {
           "alte_reguli",
           "Informații despre regulile / practicile din unitatea medicală, pe care trebuie să le respecte"
         ),
-        yesNo("alte_a_doua_opinie", "Pacientul a fost încunoștințat că are dreptul la o a doua opinie medicală."),
+        yesNo("alte_a_doua_opinie", "Pacientul a fost înștiințat că are dreptul la o a doua opinie medicală."),
       ],
     },
     {
