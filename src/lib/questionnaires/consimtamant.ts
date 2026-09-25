@@ -28,7 +28,7 @@ export const consimtamant: QuestionnaireTemplate = {
       ],
       textAfter: [
         "Etapele necesare pentru tratarea afecțiunii(lor) mele stomatologice mi-au fost explicate și includ: obturații, lucrări protetice fixe, radiografii, extracții, tratamente endodontice, tratament parodontal, proteze mobilizabile, tratament ortodontic, altele.",
-        "Am fost informat cu privire la diagnosticul afecțiunilor mele dentare, la alternativele de tratament ale acestor afecțiuni (dacă ele există), precum și la consecințele ne-intervenției terapeutice. Am înțeles că există riscuri inerente și potențiale pentru orice plan de tratament sau intervenție terapeutică. Deși nu apar în mod obișnuit, aceste riscuri se pot manifesta, după cum urmează:",
+        "Am fost informat cu privire la diagnosticul afecțiunilor mele dentare, la alternativele de tratament ale acestor afecțiuni (dacă ele există), precum și la consecințele neintervenției terapeutice. Am înțeles că există riscuri inerente și potențiale pentru orice plan de tratament sau intervenție terapeutică. Deși nu apar în mod obișnuit, aceste riscuri se pot manifesta, după cum urmează:",
       ],
     },
     {
@@ -46,7 +46,7 @@ export const consimtamant: QuestionnaireTemplate = {
     {
       title: "Medicamentație",
       text: [
-        "Anestezicele, antibioticele, sau alte medicamente și substanțe pot cauza diverse reacții alergice care se pot manifesta prin, fără a se limita la: eritem (roșeață), tumefacții (umflături), dureri, până la șoc anafilactic.",
+        "Anestezicele, antibioticele sau alte medicamente și substanțe pot cauza diverse reacții alergice care se pot manifesta prin, fără a se limita la: eritem (roșeață), tumefacții (umflături), dureri, până la șoc anafilactic.",
       ],
       fields: [
         {
@@ -69,7 +69,7 @@ export const consimtamant: QuestionnaireTemplate = {
     {
       title: "Obturații (plombe)",
       text: [
-        "Realizarea sau înlocuirea obturațiilor pot produce – fără a se limita la: hipersensibilitate temporară a dintelui, inflamație a pulpei dentare cu necesitatea ulterioară a tratamentului endodontic (de canal), apariția unor fisuri/fracturi ale smalțului dentar, longevitate mai redusă a restaurărilor în raport cu cele precedente. În timp, obturațiile estetice își pot modifica culoarea din cauza alimentelor colorate, a fumatului, etc.",
+        "Realizarea sau înlocuirea obturațiilor pot produce – fără a se limita la: hipersensibilitate temporară a dintelui, inflamație a pulpei dentare cu necesitatea ulterioară a tratamentului endodontic (de canal), apariția unor fisuri/fracturi ale smalțului dentar, longevitate mai redusă a restaurărilor în raport cu cele precedente. În timp, obturațiile estetice își pot modifica culoarea din cauza alimentelor colorate, a fumatului etc.",
       ],
     },
     {
@@ -81,7 +81,7 @@ export const consimtamant: QuestionnaireTemplate = {
     {
       title: "Tratamentul de albire",
       text: [
-        "După tratamentul de albire este posibil ca dinții să prezinte hipersensibilitate persistentă. În timpul și după tratamentul de albire este posibilă apariția sensibilității/leziunilor la nivelul gingiei. Intensitatea și durata efectului de albire este variabilă.",
+        "După tratamentul de albire este posibil ca dinții să prezinte hipersensibilitate persistentă. În timpul și după tratamentul de albire este posibilă apariția sensibilității/leziunilor la nivelul gingiei. Intensitatea și durata efectului de albire sunt variabile.",
       ],
     },
     {
@@ -107,19 +107,19 @@ export const consimtamant: QuestionnaireTemplate = {
     {
       title: "Intervenții chirurgicale parodontale",
       text: [
-        "Intervențiile parodontale sunt indicate în cazul persistenței pungilor parodontale/infecției. Aceste intervenții au ca scop reducerea/eliminarea pungilor parodontale patologice și curățarea riguroasă a suprafețelor radiculare. Însă, există situații în care după tratament parodontal, datorită unor factori cum ar fi faza avansată a bolii parodontale, absența unui program susținut de întreținere/dispensarizare, factori nutriționali, endocrini, afecțiuni generale etc., problemele parodontale pot persista sau chiar se pot agrava, mergând până la pierderea dinților.",
+        "Intervențiile parodontale sunt indicate în cazul persistenței pungilor parodontale/infecției. Aceste intervenții au ca scop reducerea/eliminarea pungilor parodontale patologice și curățarea riguroasă a suprafețelor radiculare. Însă, există situații în care după tratament parodontal, din cauza unor factori cum ar fi faza avansată a bolii parodontale, absența unui program susținut de întreținere/dispensarizare, factori nutriționali, endocrini, afecțiuni generale etc., problemele parodontale pot persista sau chiar se pot agrava, mergând până la pierderea dinților.",
       ],
     },
     {
       title: "Lucrări protetice",
       text: [
         { heading: "Lucrări protetice fixe" },
-        "Pentru aplicarea lucrărilor protetice fixe este necesară prepararea (șlefuirea) dinților sau este necesară inserția implanturilor dentare (atunci când agregarea se face pe implante). Este foarte important să se respecte programările pentru probe în diverse etape de lucru și pentru cimentarea finală, deoarece întârzierile pot duce la afectarea integrității dinților șlefuiți, a bonturilor implantare și/sau a implantelor, și la alte modificări ce pot necesita refacerea lucrărilor protetice și/sau a implantelor, cu costuri adiționale care cad în responsabilitatea pacientului.",
+        "Pentru aplicarea lucrărilor protetice fixe este necesară prepararea (șlefuirea) dinților sau este necesară inserția implanturilor dentare (atunci când agregarea se face pe implanturi). Este foarte important să se respecte programările pentru probe în diverse etape de lucru și pentru cimentarea finală, deoarece întârzierile pot duce la afectarea integrității dinților șlefuiți, a bonturilor implantare și/sau a implantelor, și la alte modificări ce pot necesita refacerea lucrărilor protetice și/sau a implantelor, cu costuri adiționale care cad în responsabilitatea pacientului.",
         "După cimentarea fațetelor/coroanelor/punților poate apărea sensibilitate la nivelul dinților pe care acestea sunt aplicate, sau la nivelul porțiunii gingivale din zona corpului de punte.",
         "Ceramica dentară (porțelanul) este casantă; acrilatul dentar sau compozitul dentar se pot desprinde (fațete sau suprafețe întregi). Fațetele/coroanele din ceramică, zirconiu sau compozit, fără suport metalic, sunt restaurări fragile, care se pot fisura sau fractura relativ ușor, chiar în cazurile în care sunt corect concepute și realizate.",
         { heading: "Proteze mobilizabile" },
-        "Purtarea unei proteze mobilizabile poate fi dificilă. Pot apărea zone dureroase persistente, modificări de fonație (vorbire) și dificultăți în masticație. Eficiența unei proteze totale este de aproximativ 30% față de eficiența unei arcade dentare integre. Protezarea imediată (plasarea protezei imediat după extracțiile dinților) poate fi dureroasă. Protezarea imediată necesită ajustări, căptușiri și rebazări. De asemenea, sunt necesare căptușiri sau rebazări ale protezelor la anumite intervale de timp. Este responsabilitatea pacientului de a respecta programarea pentru ședința de aplicare a protezei/protezelor mobilizabile pe câmpul protetic, deoarece întârzierile pot necesita refacerea protezei/protezelor și/sau a implantelor de sprijin (atunci când agregarea se face pe implante) cu costuri adiționale care intră în responsabilitatea pacientului.",
-        "După cimentarea lucrărilor fixe și după aplicarea în cavitatea bucală a protezelor mobilizabile se recomandă: NU se va mușca din fructe (mere etc.); orice necesită „mușcătură” trebuie tăiat în bucăți mai mici; NU se vor zdrobi miezi de nucă, alune, boabe de cafea, oase din mâncare, sâmburi sau orice alte alimente dure sau lemnoase, protezele putându-se mișca datorită forțelor masticatorii mari; NU se va încerca perforarea / desfacerea / tăierea / ruperea / tracționarea cu lucrările, sau cu orice alt dinte cu care lucrările intră în contact, a capacelor de sticle, ambalajelor alimentare sau nealimentare, foliilor de orice tip sau a altor materiale de uzanță zilnică; NU vor fi ținute cu lucrările obiecte dure; NU se practică sporturi agresive.",
+        "Purtarea unei proteze mobilizabile poate fi dificilă. Pot apărea zone dureroase persistente, modificări de fonație (vorbire) și dificultăți în masticație. Eficiența unei proteze totale este de aproximativ 30% față de eficiența unei arcade dentare integre. Protezarea imediată (plasarea protezei imediat după extracțiile dinților) poate fi dureroasă. Protezarea imediată necesită ajustări, căptușiri și rebazări. De asemenea, sunt necesare căptușiri sau rebazări ale protezelor la anumite intervale de timp. Este responsabilitatea pacientului de a respecta programarea pentru ședința de aplicare a protezei/protezelor mobilizabile pe câmpul protetic, deoarece întârzierile pot necesita refacerea protezei/protezelor și/sau a implantelor de sprijin (atunci când agregarea se face pe implanturi) cu costuri adiționale care intră în responsabilitatea pacientului.",
+        "După cimentarea lucrărilor fixe și după aplicarea în cavitatea bucală a protezelor mobilizabile se recomandă: NU se va mușca din fructe (mere etc.); orice necesită „mușcătură” trebuie tăiat în bucăți mai mici; NU se vor zdrobi miezi de nucă, alune, boabe de cafea, oase din mâncare, sâmburi sau orice alte alimente dure sau lemnoase, protezele putându-se mișca din cauza forțelor masticatorii mari; NU se va încerca perforarea / desfacerea / tăierea / ruperea / tracționarea cu lucrările, sau cu orice alt dinte cu care lucrările intră în contact, a capacelor de sticle, ambalajelor alimentare sau nealimentare, foliilor de orice tip sau a altor materiale de uzanță zilnică; NU vor fi ținute cu lucrările obiecte dure; NU se practică sporturi agresive.",
         "Orice modificare a integrității lucrărilor protetice fixe sau mobilizabile trebuie anunțată în cel mai scurt timp echipei medicale, pentru a putea minimiza efectele asupra dinților pe care se ancorează, dar și asupra celorlalți dinți și lucrări și asupra țesuturilor moi înconjurătoare, sau asupra implantelor existente la nivelul cavității orale.",
         "Nicio formă de protezare fixă sau mobilizabilă nu este definitivă, orice piesă protetică necesitând la un moment dat ajustare sau refacere (în aceeași formă sau în formă nouă) în funcție de evoluția oaselor maxilare, a edentațiilor, a mucoasei și a gingiei acoperitoare, a uzurii normale a dinților protezelor, a modificărilor suferite de implantele inserate, sau a modificării lucrărilor protetice fixe sau mobilizabile existente.",
       ],

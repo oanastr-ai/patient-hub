@@ -66,7 +66,7 @@ const diseaseGroups: Field[] = [
     kind: "checks",
     id: "boli_digestive",
     label: "Boli digestive",
-    options: opts(["gastrita", "gastrite / ulcer gastro-duodenal"]),
+    options: opts(["gastrita", "gastrite / ulcer gastroduodenal"]),
     other: "altele",
   },
   {
@@ -138,7 +138,7 @@ const diseaseGroups: Field[] = [
   {
     kind: "checks",
     id: "neurovegetative",
-    label: "Manifestări neuro-vegetative",
+    label: "Manifestări neurovegetative",
     options: opts(["atacuri_panica", "atacuri de panică"]),
   },
   {
@@ -148,7 +148,7 @@ const diseaseGroups: Field[] = [
     alert: true,
     options: opts(
       ["anemie", "anemie"],
-      ["thalasemie", "thalasemie"],
+      ["thalasemie", "talasemie"],
       ["leucemie_acuta", "leucemie acută"],
       ["leucemie_cronica", "leucemie cronică"],
       ["hemofilie", "hemofilie"],
@@ -181,11 +181,11 @@ export const stareGenerala: QuestionnaireTemplate = {
   shortTitle: "Evaluarea stării generale",
   sections: [
     {
-      title: "Date declarant",
+      title: "Datele declarantului",
       fields: [
-        { kind: "text", id: "declarant_nume", label: "Subsemnatul (a)", required: true },
-        { kind: "text", id: "declarant_domiciliu", label: "Domiciliat (ă) în" },
-        { kind: "text", id: "ci_seria", label: "Legitimat (ă) cu B.I./C.I. seria", short: true },
+        { kind: "text", id: "declarant_nume", label: "Subsemnatul(a)", required: true },
+        { kind: "text", id: "declarant_domiciliu", label: "Domiciliat(ă) în" },
+        { kind: "text", id: "ci_seria", label: "Legitimat(ă) cu B.I./C.I. seria", short: true },
         { kind: "text", id: "ci_nr", label: "Nr.", short: true },
         {
           kind: "choice",
@@ -194,7 +194,7 @@ export const stareGenerala: QuestionnaireTemplate = {
           required: true,
           note: "În cazul reprezentantului legal / aparținătorului se completează numele și prenumele în clar, precum și calitatea față de pacient.",
           options: [
-            { id: "pacient", label: "Pacient (ă)" },
+            { id: "pacient", label: "Pacient(ă)" },
             {
               id: "reprezentant",
               label: "Reprezentant legal al pacientului",
@@ -304,7 +304,7 @@ export const stareGenerala: QuestionnaireTemplate = {
               label: "De cât timp urmați acest tratament (luni/ani)?",
               short: true,
             },
-            { kind: "text", id: "bifosfonati_crosslaps", label: "Valoarea β cross-laps", short: true },
+            { kind: "text", id: "bifosfonati_crosslaps", label: "Valoarea β-CrossLaps", short: true },
           ],
         },
         {
@@ -322,9 +322,9 @@ export const stareGenerala: QuestionnaireTemplate = {
         {
           kind: "yesno",
           id: "interventii",
-          label: "Ați mai fost supus (ă) unor intervenții chirurgicale?",
+          label: "Ați mai fost supus(ă) unor intervenții chirurgicale?",
           followUp: [
-            { kind: "text", id: "interventii_detalii", label: "Ce intervenție (i)?", multiline: true },
+            { kind: "text", id: "interventii_detalii", label: "Ce intervenție(i)?", multiline: true },
             {
               kind: "checks",
               id: "interventii_anestezie",
@@ -448,7 +448,7 @@ export const stareGenerala: QuestionnaireTemplate = {
   declaration: [
     "Toate informațiile sunt adevărate. Dacă apar modificări ale stării mele de sănătate voi anunța medicul dentist curant.",
   ],
-  signatureLabel: "Semnătura declarant",
+  signatureLabel: "Semnătura declarantului",
   prefill: ({ patientName, address }) => ({
     declarant_nume: patientName,
     calitate: "pacient",
