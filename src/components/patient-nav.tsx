@@ -28,7 +28,7 @@ export function PatientNav({
   const currentTab = TABS.find((t) => t.slug === currentSlug);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 print:hidden">
       {/* Breadcrumb */}
       <nav aria-label="breadcrumb" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
         <Link href="/patients" className="transition-colors hover:text-foreground">
