@@ -11,16 +11,8 @@ import type { Field, QuestionnaireTemplate } from "./types";
  * păstrează dacă există acorduri semnate pe ea.
  */
 
-const INSIST = "Insistându-se asupra următoarelor";
-
-function yesNo(id: string, label: string, detail?: boolean, note?: string): Field {
-  return {
-    kind: "yesno",
-    id,
-    label,
-    note,
-    followUp: detail ? [{ kind: "text", id: `${id}_detalii`, label: INSIST, multiline: true }] : [],
-  };
+function yesNo(id: string, label: string, note?: string): Field {
+  return { kind: "yesno", id, label, note };
 }
 
 export const acordPacient: QuestionnaireTemplate = {
@@ -74,9 +66,9 @@ export const acordPacient: QuestionnaireTemplate = {
         yesNo("info_prognostic", "Prognostic"),
         yesNo("info_natura", "Natura și scopul actului medical propus"),
         yesNo("info_interventii", "Intervențiile și strategia terapeutică propuse"),
-        yesNo("info_beneficii", "Beneficiile și consecințele actului medical", true),
-        yesNo("info_riscuri", "Riscurile potențiale ale actului medical", true),
-        yesNo("info_alternative", "Alternative viabile de tratament și riscurile acestora", true),
+        yesNo("info_beneficii", "Beneficiile și consecințele actului medical"),
+        yesNo("info_riscuri", "Riscurile potențiale ale actului medical"),
+        yesNo("info_alternative", "Alternative viabile de tratament și riscurile acestora"),
         yesNo("info_neefectuare", "Riscurile neefectuării tratamentului"),
         yesNo("info_nerespectare", "Riscurile nerespectării recomandărilor medicale"),
       ],
@@ -97,7 +89,6 @@ export const acordPacient: QuestionnaireTemplate = {
         yesNo(
           "alte_personal",
           "Informații despre identitatea și statutul profesional al personalului care îl va trata",
-          false,
           "Identificat în tabelul cu personalul medical care îngrijește pacientul."
         ),
         yesNo(
