@@ -11,8 +11,7 @@ const intakeSchema = z.object({
   first_name: z.string().trim().min(1),
   cnp: z.string().trim(),
   birth_date: z.string().trim(),
-  id_card_series: z.string().trim(),
-  id_card_number: z.string().trim(),
+  id_card: z.string().trim(),
   phone: z.string().trim(),
   email: z.string().trim(),
   address: z.string().trim(),
@@ -20,6 +19,17 @@ const intakeSchema = z.object({
 });
 
 export type IntakeInput = z.infer<typeof intakeSchema>;
+
+/**
+ * Seria și numărul buletinului, scrise într-o singură căsuță („CJ 123456",
+ * „cj123456"). Dacă textul nu arată așa, se păstrează întreg ca serie.
+ */
+function splitIdCard(text: string): { series: string | null; number: string | null } {
+  if (!text) return { series: null, number: null };
+  const match = text.match(/^([a-zA-Z]{1,3})[\s.,-]*(\d[\d\s]{3,11})$/);
+  if (match) return { series: match[1].toUpperCase(), number: match[2].replace(/\s/g, "") };
+  return { series: text.toUpperCase(), number: null };
+}
 
 /**
  * Creează fișa unui pacient nou din datele scrise de el pe tabletă.
@@ -31,13 +41,14 @@ export async function createIntakePatient(input: IntakeInput): Promise<{ id: str
   if (data.cnp && !isValidCnp(data.cnp)) throw new Error("CNP invalid");
 
   const orNull = (v: string) => (v ? v : null);
+  const idCard = splitIdCard(data.id_card);
   const values = {
     last_name: data.last_name,
     first_name: data.first_name,
     cnp: orNull(data.cnp),
     birth_date: orNull(data.birth_date) ?? (data.cnp ? birthDateFromCnp(data.cnp) : null),
-    id_card_series: orNull(data.id_card_series.toUpperCase()),
-    id_card_number: orNull(data.id_card_number),
+    id_card_series: idCard.series,
+    id_card_number: idCard.number,
     phone: orNull(data.phone),
     email: orNull(data.email),
     address: orNull(data.address),

@@ -12,13 +12,19 @@ import { createIntakePatient, type IntakeInput } from "./actions";
 
 const t = ro.intake;
 
-const FIELDS: { key: keyof IntakeInput; label: string; type?: string; required?: boolean; short?: boolean }[] = [
+const FIELDS: {
+  key: keyof IntakeInput;
+  label: string;
+  type?: string;
+  required?: boolean;
+  short?: boolean;
+  placeholder?: string;
+}[] = [
   { key: "last_name", label: t.lastName, required: true },
   { key: "first_name", label: t.firstName, required: true },
   { key: "cnp", label: t.cnp, short: true },
   { key: "birth_date", label: t.birthDate, type: "date", short: true },
-  { key: "id_card_series", label: t.idCardSeries, short: true },
-  { key: "id_card_number", label: t.idCardNumber, short: true },
+  { key: "id_card", label: t.idCard, short: true, placeholder: t.idCardExample },
   { key: "phone", label: t.phone, type: "tel", short: true },
   { key: "email", label: t.email, type: "email" },
   { key: "address", label: t.address },
@@ -30,8 +36,7 @@ const EMPTY: IntakeInput = {
   first_name: "",
   cnp: "",
   birth_date: "",
-  id_card_series: "",
-  id_card_number: "",
+  id_card: "",
   phone: "",
   email: "",
   address: "",
@@ -100,6 +105,7 @@ export function IntakeForm() {
             <Input
               id={`intake-${f.key}`}
               type={f.type ?? "text"}
+              placeholder={f.placeholder}
               inputMode={f.key === "cnp" ? "numeric" : undefined}
               autoComplete="off"
               value={values[f.key]}
