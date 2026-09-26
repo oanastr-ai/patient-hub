@@ -192,6 +192,11 @@ export const ro = {
   },
   questionnaires: {
     fillOnTablet: "Completează",
+    fillInEnglish: "English",
+    fillInEnglishHint: "Varianta în limba engleză, pentru pacienți străini",
+    signedInEnglish: "în engleză",
+    showSigned: "Vezi varianta semnată (engleză)",
+    showRomanian: "Vezi în română",
     completed: "Chestionare completate",
     empty: "Niciun chestionar completat încă.",
     signedAt: "Semnat",

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
-import { ro } from "@/i18n/ro";
+import { kioskText, type KioskDict, type Lang } from "@/i18n/kiosk";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,8 @@ import {
   type QuestionnaireTemplate,
 } from "@/lib/questionnaires";
 
-const t = ro.questionnaires;
-
 type Ctx = {
+  t: KioskDict["questionnaires"];
   answers: Answers;
   set: (key: string, value: string | string[] | undefined) => void;
   missing: Set<string>;
@@ -33,11 +32,16 @@ export function QuestionnaireForm({
   template,
   initialAnswers,
   onSubmit,
+  lang,
 }: {
   template: QuestionnaireTemplate;
   initialAnswers: Answers;
+  /** Limba în care completează pacientul. */
+  lang: Lang;
   onSubmit: (answers: Answers, signatures: { patient: string; doctor?: string }) => Promise<void>;
 }) {
+  const text = kioskText(lang);
+  const t = text.questionnaires;
   const [answers, setAnswers] = useState<Answers>(initialAnswers);
   const [signatures, setSignatures] = useState<Partial<Record<SignatureRole, string>>>({});
   const [missing, setMissing] = useState<Set<string>>(new Set());
@@ -85,13 +89,13 @@ export function QuestionnaireForm({
       try {
         await onSubmit(answers, { patient: signatures.patient!, doctor: signatures.doctor });
       } catch {
-        setError(ro.common.error);
+        setError(text.error);
       }
     });
   }
 
-  const ctx: Ctx = { answers, set, missing };
-  const today = new Date().toLocaleDateString("ro-RO");
+  const ctx: Ctx = { t, answers, set, missing };
+  const today = new Date().toLocaleDateString(lang === "en" ? "en-GB" : "ro-RO");
   const hasMissing = missing.size > 0 || unsigned.length > 0;
 
   return (
@@ -183,7 +187,7 @@ function FieldView({ field, ctx }: { field: Field; ctx: Ctx }) {
       {field.kind === "choice" && <Choice field={field} ctx={ctx} />}
       {field.kind === "checks" && <Checks field={field} ctx={ctx} />}
 
-      {isMissing && <p className="text-sm text-destructive">{t.missingOne}</p>}
+      {isMissing && <p className="text-sm text-destructive">{ctx.t.missingOne}</p>}
 
       {children.length > 0 && (
         <div className="space-y-5 border-l-4 border-primary/25 pl-4 sm:pl-5">
@@ -196,7 +200,7 @@ function FieldView({ field, ctx }: { field: Field; ctx: Ctx }) {
   );
 }
 
-function Question({ field }: { field: Field }) {
+function Question({ field, t }: { field: Field; t: KioskDict["questionnaires"] }) {
   const optional =
     (field.kind === "yesno" && field.optional) ||
     (field.kind === "text" && !field.required) ||
@@ -218,7 +222,7 @@ function YesNo({ field, ctx }: { field: Field & { kind: "yesno" }; ctx: Ctx }) {
   const value = ctx.answers[field.id];
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <Question field={field} />
+      <Question field={field} t={ctx.t} />
       <div className="flex shrink-0 gap-2">
         {(["da", "nu"] as const).map((v) => (
           <ToggleButton
@@ -228,7 +232,7 @@ function YesNo({ field, ctx }: { field: Field & { kind: "yesno" }; ctx: Ctx }) {
             onClick={() => ctx.set(field.id, value === v ? undefined : v)}
             className="w-24"
           >
-            {v === "da" ? t.yes : t.no}
+            {v === "da" ? ctx.t.yes : ctx.t.no}
           </ToggleButton>
         ))}
       </div>
@@ -242,7 +246,7 @@ function TextField({ field, ctx }: { field: Field & { kind: "text" }; ctx: Ctx }
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block">
-        <Question field={field} />
+        <Question field={field} t={ctx.t} />
       </label>
       {field.multiline ? (
         <textarea
@@ -268,7 +272,7 @@ function Choice({ field, ctx }: { field: Field & { kind: "choice" }; ctx: Ctx })
   const value = ctx.answers[field.id];
   return (
     <div className="space-y-2">
-      <Question field={field} />
+      <Question field={field} t={ctx.t} />
       <div className="flex flex-wrap gap-2">
         {field.options.map((o) => (
           <ToggleButton
@@ -287,7 +291,7 @@ function Choice({ field, ctx }: { field: Field & { kind: "choice" }; ctx: Ctx })
 function Checks({ field, ctx }: { field: Field & { kind: "checks" }; ctx: Ctx }) {
   const checked = (ctx.answers[field.id] as string[] | undefined) ?? [];
   const options: Option[] = field.other
-    ? [...field.options, { id: OTHER_OPTION, label: field.other, detail: t.other }]
+    ? [...field.options, { id: OTHER_OPTION, label: field.other, detail: ctx.t.other }]
     : field.options;
 
   function toggle(optId: string) {
@@ -301,7 +305,7 @@ function Checks({ field, ctx }: { field: Field & { kind: "checks" }; ctx: Ctx })
 
   return (
     <div className="space-y-2">
-      <Question field={field} />
+      <Question field={field} t={ctx.t} />
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <ToggleButton

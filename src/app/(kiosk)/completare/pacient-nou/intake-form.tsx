@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ro } from "@/i18n/ro";
+import { kioskQuery, kioskText, type KioskDict, type Lang } from "@/i18n/kiosk";
 import { cn } from "@/lib/utils";
 import { birthDateFromCnp, isValidCnp } from "@/lib/cnp";
 import { INTAKE_FLOW } from "@/lib/questionnaires";
@@ -10,16 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createIntakePatient, type IntakeInput } from "./actions";
 
-const t = ro.intake;
-
-const FIELDS: {
+type IntakeField = {
   key: keyof IntakeInput;
   label: string;
   type?: string;
   required?: boolean;
   short?: boolean;
   placeholder?: string;
-}[] = [
+};
+
+const fields = (t: KioskDict["intake"]): IntakeField[] => [
   { key: "last_name", label: t.lastName, required: true },
   { key: "first_name", label: t.firstName, required: true },
   { key: "cnp", label: t.cnp, short: true },
@@ -43,7 +43,10 @@ const EMPTY: IntakeInput = {
   occupation: "",
 };
 
-export function IntakeForm() {
+export function IntakeForm({ lang }: { lang: Lang }) {
+  const text = kioskText(lang);
+  const t = text.intake;
+  const FIELDS = fields(t);
   const router = useRouter();
   const [values, setValues] = useState<IntakeInput>(EMPTY);
   // Pacientul a scris singur data nașterii — CNP-ul nu o mai suprascrie.
@@ -81,9 +84,9 @@ export function IntakeForm() {
     startTransition(async () => {
       try {
         const { id } = await createIntakePatient(values);
-        router.push(`/completare/${id}/${INTAKE_FLOW[0]}?flux=nou`);
+        router.push(`/completare/${id}/${INTAKE_FLOW[0]}${kioskQuery(true, lang)}`);
       } catch {
-        setError(ro.common.error);
+        setError(text.error);
       }
     });
   }

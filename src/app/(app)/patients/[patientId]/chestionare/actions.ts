@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicId } from "@/lib/clinic";
 import { getTemplate, missingAnswers, pruneAnswers } from "@/lib/questionnaires";
+import { LANGS, type Lang } from "@/i18n/kiosk";
 
 const BUCKET = "patient-files";
 const PNG_PREFIX = "data:image/png;base64,";
@@ -32,8 +33,10 @@ export async function saveQuestionnaire(
   patientId: string,
   templateCode: string,
   rawAnswers: unknown,
-  signatures: Signatures
+  signatures: Signatures,
+  lang: Lang = "ro"
 ): Promise<{ id: string }> {
+  if (!LANGS.includes(lang)) throw new Error("Limbă necunoscută");
   const template = getTemplate(templateCode);
   if (!template) throw new Error("Chestionar inexistent");
 
@@ -58,6 +61,7 @@ export async function saveQuestionnaire(
       template_code: template.code,
       template_version: template.version,
       answers,
+      language: lang,
     })
     .select("id")
     .single();

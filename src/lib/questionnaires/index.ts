@@ -1,7 +1,13 @@
+import type { Lang } from "@/i18n/kiosk";
 import { acordPacient } from "./acord-pacient";
 import { consimtamant } from "./consimtamant";
+import { acordPacientEn } from "./en/acord-pacient";
+import { consimtamantEn } from "./en/consimtamant";
+import { gdprEn } from "./en/gdpr";
+import { stareGeneralaEn } from "./en/stare-generala";
 import { gdpr } from "./gdpr";
 import { stareGenerala } from "./stare-generala";
+import { translate, type Translation } from "./translate";
 import {
   OTHER_OPTION,
   detailKey,
@@ -15,14 +21,30 @@ export * from "./types";
 /** Toate versiunile tuturor chestionarelor; ultima versiune a unui cod e cea curentă. */
 const TEMPLATES: QuestionnaireTemplate[] = [stareGenerala, consimtamant, acordPacient, gdpr];
 
+/** Traducerile, pe cod de chestionar și limbă (româna e originalul). */
+const TRANSLATIONS: Record<string, Partial<Record<Lang, Translation>>> = {
+  "stare-generala": { en: stareGeneralaEn },
+  consimtamant: { en: consimtamantEn },
+  "acord-pacient": { en: acordPacientEn },
+  gdpr: { en: gdprEn },
+};
+
 export const CURRENT_TEMPLATES = TEMPLATES.filter(
   (t) => !TEMPLATES.some((o) => o.code === t.code && o.version > t.version)
 );
 
-export function getTemplate(code: string, version?: number) {
+/**
+ * Șablonul unui chestionar (ultima versiune dacă `version` lipsește), în
+ * limba cerută. Varianta tradusă are aceleași întrebări și răspunsuri.
+ */
+export function getTemplate(code: string, version?: number, lang: Lang = "ro") {
   const matching = TEMPLATES.filter((t) => t.code === code);
-  if (version !== undefined) return matching.find((t) => t.version === version);
-  return matching.sort((a, b) => b.version - a.version)[0];
+  const template =
+    version !== undefined
+      ? matching.find((t) => t.version === version)
+      : matching.sort((a, b) => b.version - a.version)[0];
+  const translation = TRANSLATIONS[code]?.[lang];
+  return template && translation ? translate(template, translation) : template;
 }
 
 /** Câmpurile copil vizibile pentru răspunsurile date. */
@@ -151,7 +173,9 @@ export function positiveFindings(template: QuestionnaireTemplate, answers: Answe
 export const INTAKE_FLOW = ["stare-generala", "consimtamant", "acord-pacient", "gdpr"];
 
 /** Următorul chestionar din fluxul de primă consultație, dacă există. */
-export function nextInIntake(code: string): QuestionnaireTemplate | undefined {
+export function nextInIntake(code: string, lang: Lang = "ro"): QuestionnaireTemplate | undefined {
   const i = INTAKE_FLOW.indexOf(code);
-  return i >= 0 && i < INTAKE_FLOW.length - 1 ? getTemplate(INTAKE_FLOW[i + 1]) : undefined;
+  return i >= 0 && i < INTAKE_FLOW.length - 1
+    ? getTemplate(INTAKE_FLOW[i + 1], undefined, lang)
+    : undefined;
 }

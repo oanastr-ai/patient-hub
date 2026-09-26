@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTemplate, type Answers } from "@/lib/questionnaires";
+import { parseLang } from "@/i18n/kiosk";
 import { KioskClient } from "./kiosk-client";
 
 export default async function CompletarePage({
@@ -8,11 +9,12 @@ export default async function CompletarePage({
   searchParams,
 }: {
   params: Promise<{ patientId: string; templateCode: string }>;
-  searchParams: Promise<{ flux?: string }>;
+  searchParams: Promise<{ flux?: string; lang?: string }>;
 }) {
   const { patientId, templateCode } = await params;
-  const { flux } = await searchParams;
-  const template = getTemplate(templateCode);
+  const { flux, lang: langParam } = await searchParams;
+  const lang = parseLang(langParam);
+  const template = getTemplate(templateCode, undefined, lang);
   if (!template) notFound();
 
   const supabase = await createClient();
@@ -54,11 +56,12 @@ export default async function CompletarePage({
   return (
     <KioskClient
       // Fiecare document pornește de la zero, și când se trece la următorul din flux.
-      key={template.code}
+      key={`${template.code}-${lang}`}
       patientId={patient.id}
       templateCode={template.code}
       initialAnswers={initialAnswers}
       intake={flux === "nou"}
+      lang={lang}
     />
   );
 }

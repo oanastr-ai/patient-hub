@@ -1,4 +1,4 @@
-import { ro } from "@/i18n/ro";
+import { kioskText, type KioskDict, type Lang } from "@/i18n/kiosk";
 import { cn } from "@/lib/utils";
 import {
   answerText,
@@ -9,8 +9,6 @@ import {
 } from "@/lib/questionnaires";
 import { TextBlocks } from "@/components/questionnaire/text-blocks";
 
-const t = ro.questionnaires;
-
 export type SignatureImage = { label: string; url: string | null };
 
 /** Chestionarul completat, ca document de citit sau de tipărit. */
@@ -19,12 +17,17 @@ export function QuestionnaireDocument({
   answers,
   signatures,
   signedAt,
+  lang = "ro",
 }: {
   template: QuestionnaireTemplate;
   answers: Answers;
   signatures: SignatureImage[];
   signedAt: string | null;
+  /** Limba în care se afișează documentul (implicit română). */
+  lang?: Lang;
 }) {
+  const t = kioskText(lang).questionnaires;
+  const locale = lang === "en" ? "en-GB" : "ro-RO";
   return (
     <article className="space-y-6 rounded-2xl border bg-card p-5 text-[0.95rem] sm:p-8 print:rounded-none print:border-0 print:p-0 print:text-[10.5pt]">
       <h1 className="text-center text-xl font-semibold uppercase tracking-wide text-balance">
@@ -44,7 +47,7 @@ export function QuestionnaireDocument({
           {section.fields && (
             <dl className="space-y-1.5">
               {section.fields.map((f) => (
-                <Row key={f.id} field={f} answers={answers} depth={0} />
+                <Row key={f.id} field={f} answers={answers} depth={0} t={t} />
               ))}
             </dl>
           )}
@@ -59,12 +62,12 @@ export function QuestionnaireDocument({
         <div className="grid items-end gap-6 break-inside-avoid pt-2 sm:auto-cols-fr sm:grid-flow-col">
           <p>
             <span className="font-semibold">{t.date}:</span>{" "}
-            {signedAt ? new Date(signedAt).toLocaleDateString("ro-RO") : t.notAnswered}
+            {signedAt ? new Date(signedAt).toLocaleDateString(locale) : t.notAnswered}
             {signedAt && template.signedTime && (
               <>
                 {" "}
                 <span className="font-semibold">{t.time}:</span>{" "}
-                {new Date(signedAt).toLocaleTimeString("ro-RO", {
+                {new Date(signedAt).toLocaleTimeString(locale, {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
@@ -92,7 +95,17 @@ export function QuestionnaireDocument({
   );
 }
 
-function Row({ field, answers, depth }: { field: Field; answers: Answers; depth: number }) {
+function Row({
+  field,
+  answers,
+  depth,
+  t,
+}: {
+  field: Field;
+  answers: Answers;
+  depth: number;
+  t: KioskDict["questionnaires"];
+}) {
   const text = answerText(field, answers);
   const children = visibleChildren(field, answers);
   const itemize = field.kind === "yesno" && field.itemize;
@@ -117,16 +130,13 @@ function Row({ field, answers, depth }: { field: Field; answers: Answers; depth:
             field.kind === "yesno" && text === "da" && "text-primary"
           )}
         >
-          {text ? (field.kind === "yesno" ? capitalize(text) : text) : t.notAnswered}
+          {text ? (field.kind === "yesno" ? (text === "da" ? t.yes : t.no) : text) : t.notAnswered}
         </dd>
       </div>
       {shownChildren.map((c) => (
-        <Row key={c.id} field={c} answers={answers} depth={depth + 1} />
+        <Row key={c.id} field={c} answers={answers} depth={depth + 1} t={t} />
       ))}
     </>
   );
 }
 
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
