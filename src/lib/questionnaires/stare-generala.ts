@@ -439,6 +439,7 @@ export const stareGenerala: QuestionnaireTemplate = {
             ["recomandare", "recomandare prieteni, familie"],
             ["medici", "alți medici"],
             ["facebook", "pagina de Facebook"],
+            ["instagram", "pagina de Instagram"],
             ["internet", "pagina de internet"],
             ["alte", "alte surse"]
           ),
