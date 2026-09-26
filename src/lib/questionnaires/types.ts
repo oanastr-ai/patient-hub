@@ -61,8 +61,8 @@ export type Field =
       other?: string;
     });
 
-/** Un paragraf de citit sau un subtitlu în interiorul unei secțiuni. */
-export type TextBlock = string | { heading: string };
+/** Un paragraf de citit, un subtitlu sau o listă cu puncte, în interiorul unei secțiuni. */
+export type TextBlock = string | { heading: string } | { list: string[] };
 
 export type Section = {
   title?: string;
@@ -78,6 +78,8 @@ export type PrefillContext = {
   patientName: string;
   address: string | null;
   cnp: string | null;
+  phone: string | null;
+  email: string | null;
   /** Ultimele răspunsuri ale pacientului, pe codul chestionarului. */
   latest: Record<string, Answers>;
 };
@@ -100,6 +102,8 @@ export type QuestionnaireTemplate = {
   summary?: boolean;
   /** Pe document apare și ora semnării, nu doar data. */
   signedTime?: boolean;
+  /** La semnare se completează data acordului GDPR în fișa pacientului. */
+  recordsGdprConsent?: boolean;
   /** Documentul se semnează și de medic, pe aceeași tabletă. */
   doctorSignature?: boolean;
   /** Răspunsurile precompletate din datele pacientului. */

@@ -95,6 +95,14 @@ export async function saveQuestionnaire(
     .eq("id", row.id);
   if (updateError) throw new Error(updateError.message);
 
+  if (template.recordsGdprConsent) {
+    const { error: gdprError } = await supabase
+      .from("patients")
+      .update({ gdpr_consent_at: new Date().toISOString() })
+      .eq("id", patientId);
+    if (gdprError) throw new Error(gdprError.message);
+  }
+
   revalidatePath(listPath(patientId));
   return { id: row.id };
 }

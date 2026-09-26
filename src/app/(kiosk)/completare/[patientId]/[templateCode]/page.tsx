@@ -16,7 +16,7 @@ export default async function CompletarePage({
   const [{ data: patient }, { data: previous }] = await Promise.all([
     supabase
       .from("patients")
-      .select("id, first_name, last_name, address, cnp")
+      .select("id, first_name, last_name, address, cnp, phone, email")
       .eq("id", patientId)
       .single(),
     supabase
@@ -34,7 +34,14 @@ export default async function CompletarePage({
   const patientName = `${patient.last_name} ${patient.first_name}`;
   // Datele cunoscute se precompletează; pacientul le poate corecta.
   const initialAnswers =
-    template.prefill?.({ patientName, address: patient.address, cnp: patient.cnp, latest }) ?? {};
+    template.prefill?.({
+      patientName,
+      address: patient.address,
+      cnp: patient.cnp,
+      phone: patient.phone,
+      email: patient.email,
+      latest,
+    }) ?? {};
 
   return (
     <KioskClient
