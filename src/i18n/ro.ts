@@ -232,6 +232,8 @@ export const ro = {
     cnp: "CNP",
     cnpInvalid: "CNP-ul nu pare corect. Vă rugăm să îl verificați.",
     birthDate: "Data nașterii",
+    idCardSeries: "Buletin (B.I./C.I.) — seria",
+    idCardNumber: "Buletin (B.I./C.I.) — numărul",
     phone: "Telefon",
     email: "E-mail",
     address: "Adresa (domiciliul)",

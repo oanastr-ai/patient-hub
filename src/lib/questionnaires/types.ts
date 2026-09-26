@@ -74,7 +74,12 @@ export type Section = {
 };
 
 /** Datele personale din fișa pacientului pe care un chestionar le poate actualiza. */
-export type PatientData = Partial<Record<"address" | "cnp" | "phone" | "email" | "occupation", string>>;
+export type PatientData = Partial<
+  Record<
+    "address" | "cnp" | "phone" | "email" | "occupation" | "id_card_series" | "id_card_number",
+    string
+  >
+>;
 
 /** Ce se știe deja despre pacient, pentru precompletare. */
 export type PrefillContext = {
@@ -84,6 +89,8 @@ export type PrefillContext = {
   phone: string | null;
   email: string | null;
   occupation: string | null;
+  idCardSeries: string | null;
+  idCardNumber: string | null;
   /** Ultimele răspunsuri ale pacientului, pe codul chestionarului. */
   latest: Record<string, Answers>;
 };
