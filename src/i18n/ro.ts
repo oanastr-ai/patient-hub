@@ -191,7 +191,7 @@ export const ro = {
     uploading: "Se încarcă...",
   },
   questionnaires: {
-    fillOnTablet: "Completează pe tabletă",
+    fillOnTablet: "Completează",
     completed: "Chestionare completate",
     empty: "Niciun chestionar completat încă.",
     signedAt: "Semnat",
