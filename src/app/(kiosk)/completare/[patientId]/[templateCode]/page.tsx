@@ -5,10 +5,13 @@ import { KioskClient } from "./kiosk-client";
 
 export default async function CompletarePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ patientId: string; templateCode: string }>;
+  searchParams: Promise<{ flux?: string }>;
 }) {
   const { patientId, templateCode } = await params;
+  const { flux } = await searchParams;
   const template = getTemplate(templateCode);
   if (!template) notFound();
 
@@ -45,9 +48,12 @@ export default async function CompletarePage({
 
   return (
     <KioskClient
+      // Fiecare document pornește de la zero, și când se trece la următorul din flux.
+      key={template.code}
       patientId={patient.id}
       templateCode={template.code}
       initialAnswers={initialAnswers}
+      intake={flux === "nou"}
     />
   );
 }

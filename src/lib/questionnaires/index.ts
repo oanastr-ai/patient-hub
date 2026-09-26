@@ -146,3 +146,16 @@ export function positiveFindings(template: QuestionnaireTemplate, answers: Answe
   for (const section of template.sections) visit(section.fields ?? []);
   return lines;
 }
+
+/**
+ * Chestionarele de la prima consultație, în ordinea în care le completează
+ * pacientul pe tabletă. Acordul pacientului lipsește intenționat: se dă
+ * pentru un act medical anume, după examinare.
+ */
+export const INTAKE_FLOW = ["stare-generala", "consimtamant", "gdpr"];
+
+/** Următorul chestionar din fluxul de primă consultație, dacă există. */
+export function nextInIntake(code: string): QuestionnaireTemplate | undefined {
+  const i = INTAKE_FLOW.indexOf(code);
+  return i >= 0 && i < INTAKE_FLOW.length - 1 ? getTemplate(INTAKE_FLOW[i + 1]) : undefined;
+}

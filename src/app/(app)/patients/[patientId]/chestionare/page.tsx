@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight, ClipboardList, TabletSmartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ro } from "@/i18n/ro";
-import { CURRENT_TEMPLATES, getTemplate } from "@/lib/questionnaires";
+import { CURRENT_TEMPLATES, INTAKE_FLOW, getTemplate } from "@/lib/questionnaires";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -25,7 +25,17 @@ export default async function ChestionarePage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{ro.patientHub.chestionare}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{ro.patientHub.chestionare}</h1>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/completare/${patientId}/${INTAKE_FLOW[0]}?flux=nou`} />}
+        >
+          <TabletSmartphone className="mr-1.5" />
+          {ro.intake.startAll}
+        </Button>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         {CURRENT_TEMPLATES.map((tpl) => (
