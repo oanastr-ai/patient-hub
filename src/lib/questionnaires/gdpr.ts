@@ -126,6 +126,17 @@ export const gdpr: QuestionnaireTemplate = {
   ],
   declaration: [],
   signatureLabel: "Semnătura pacientului / reprezentantului legal",
+  toPatient: (a) => {
+    const text = (key: string) => (typeof a[key] === "string" ? (a[key] as string) : undefined);
+    return Object.fromEntries(
+      Object.entries({
+        cnp: text("cnp"),
+        address: text("adresa"),
+        phone: text("telefon"),
+        email: text("email"),
+      }).filter(([, v]) => v)
+    );
+  },
   prefill: ({ patientName, cnp, address, phone, email }) => ({
     pacient_nume: patientName,
     reprezentant: "nu",

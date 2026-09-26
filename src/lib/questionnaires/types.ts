@@ -73,6 +73,9 @@ export type Section = {
   textAfter?: TextBlock[];
 };
 
+/** Datele personale din fișa pacientului pe care un chestionar le poate actualiza. */
+export type PatientData = Partial<Record<"address" | "cnp" | "phone" | "email", string>>;
+
 /** Ce se știe deja despre pacient, pentru precompletare. */
 export type PrefillContext = {
   patientName: string;
@@ -108,6 +111,11 @@ export type QuestionnaireTemplate = {
   doctorSignature?: boolean;
   /** Răspunsurile precompletate din datele pacientului. */
   prefill?: (ctx: PrefillContext) => Answers;
+  /**
+   * Datele personale scrise de pacient, care se salvează în fișa lui la
+   * trimitere — ca să apară precompletate în chestionarele următoare.
+   */
+  toPatient?: (answers: Answers) => PatientData;
 };
 
 export type Answers = Record<string, string | string[]>;

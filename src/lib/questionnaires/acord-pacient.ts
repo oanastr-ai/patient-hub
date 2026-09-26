@@ -160,6 +160,8 @@ export const acordPacient: QuestionnaireTemplate = {
   ],
   declaration: [],
   signatureLabel: "Semnătura pacientului / reprezentantului legal",
+  toPatient: (a) =>
+    typeof a.pacient_domiciliu === "string" ? { address: a.pacient_domiciliu } : {},
   prefill: ({ patientName, address }) => ({
     pacient_nume: patientName,
     subsemnatul: patientName,

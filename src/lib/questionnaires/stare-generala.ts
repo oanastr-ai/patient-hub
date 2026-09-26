@@ -449,9 +449,21 @@ export const stareGenerala: QuestionnaireTemplate = {
     "Toate informațiile sunt adevărate. Dacă apar modificări ale stării mele de sănătate voi anunța medicul dentist curant.",
   ],
   signatureLabel: "Semnătura declarantului",
-  prefill: ({ patientName, address }) => ({
-    declarant_nume: patientName,
-    calitate: "pacient",
-    ...(address ? { declarant_domiciliu: address } : {}),
-  }),
+  prefill: ({ patientName, address, latest }) => {
+    const previous = latest["stare-generala"];
+    // Actul de identitate nu e în fișă; se ia din chestionarul anterior.
+    const idCard = previous?.calitate === "pacient" ? previous : undefined;
+    return {
+      declarant_nume: patientName,
+      calitate: "pacient",
+      ...(address ? { declarant_domiciliu: address } : {}),
+      ...(typeof idCard?.ci_seria === "string" ? { ci_seria: idCard.ci_seria } : {}),
+      ...(typeof idCard?.ci_nr === "string" ? { ci_nr: idCard.ci_nr } : {}),
+    };
+  },
+  // Domiciliul e al pacientului doar când declară chiar pacientul.
+  toPatient: (a) =>
+    a.calitate === "pacient" && typeof a.declarant_domiciliu === "string"
+      ? { address: a.declarant_domiciliu }
+      : {},
 };

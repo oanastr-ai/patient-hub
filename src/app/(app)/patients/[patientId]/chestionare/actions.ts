@@ -95,12 +95,19 @@ export async function saveQuestionnaire(
     .eq("id", row.id);
   if (updateError) throw new Error(updateError.message);
 
-  if (template.recordsGdprConsent) {
-    const { error: gdprError } = await supabase
+  // Datele personale scrise de pacient ajung în fișă, ca să nu le mai
+  // scrie o dată în chestionarele următoare.
+  const patientUpdate = {
+    ...(template.toPatient?.(answers) ?? {}),
+    ...(template.recordsGdprConsent ? { gdpr_consent_at: new Date().toISOString() } : {}),
+  };
+  if (Object.keys(patientUpdate).length > 0) {
+    const { error: patientError } = await supabase
       .from("patients")
-      .update({ gdpr_consent_at: new Date().toISOString() })
+      .update(patientUpdate)
       .eq("id", patientId);
-    if (gdprError) throw new Error(gdprError.message);
+    if (patientError) throw new Error(patientError.message);
+    revalidatePath(`/patients/${patientId}`, "layout");
   }
 
   revalidatePath(listPath(patientId));

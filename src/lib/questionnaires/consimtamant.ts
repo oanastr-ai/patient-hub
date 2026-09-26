@@ -148,6 +148,7 @@ export const consimtamant: QuestionnaireTemplate = {
   ],
   signatureLabel: "Pacient",
   doctorSignature: true,
+  toPatient: (a) => (typeof a.cnp === "string" ? { cnp: a.cnp } : {}),
   prefill: ({ patientName, cnp, latest }) => {
     const health = latest["stare-generala"];
     // Alergiile declarate în chestionarul de stare generală, ca să nu fie scrise de două ori.
