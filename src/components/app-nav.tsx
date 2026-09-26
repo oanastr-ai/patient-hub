@@ -28,7 +28,7 @@ export function AppNav() {
   return (
     <>
       {/* Sidebar — tabletă și desktop */}
-      <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:bg-card md:min-h-screen">
+      <aside className="hidden print:hidden! md:flex md:w-56 md:flex-col md:border-r md:bg-card md:min-h-screen">
         <div className="p-4 border-b">
           <h1 className="font-semibold text-lg text-primary">{ro.app.name}</h1>
           <p className="text-xs text-muted-foreground">{ro.app.clinicName}</p>
@@ -60,7 +60,7 @@ export function AppNav() {
       </aside>
 
       {/* Bara de jos — telefon */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 flex border-t bg-card md:hidden">
+      <nav className="fixed bottom-0 inset-x-0 z-50 flex border-t bg-card md:hidden print:hidden">
         {items.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}

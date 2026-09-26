@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, UserPlus } from "lucide-react";
+import { Languages, Search, TabletSmartphone, UserPlus } from "lucide-react";
 import { ro } from "@/i18n/ro";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,23 @@ export function PatientList({ patients }: { patients: PatientRow[] }) {
             className="pl-9"
           />
         </div>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/completare/pacient-nou" />}
+        >
+          <TabletSmartphone className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">{ro.intake.start}</span>
+        </Button>
+        <Button
+          variant="outline"
+          title={ro.questionnaires.fillInEnglishHint}
+          nativeButton={false}
+          render={<Link href="/completare/pacient-nou?lang=en" />}
+        >
+          <Languages className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">{ro.questionnaires.fillInEnglish}</span>
+        </Button>
         <Button nativeButton={false} render={<Link href="/patients/new" />}>
           <UserPlus className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">{ro.patients.add}</span>

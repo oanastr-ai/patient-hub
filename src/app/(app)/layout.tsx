@@ -26,7 +26,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen">
       <AppNav />
       {/* pb-20 lasă loc pentru bara de navigare de jos pe mobil */}
-      <main className="min-w-0 flex-1 p-4 pb-20 md:p-6 md:pb-6">
+      <main className="min-w-0 flex-1 p-4 pb-20 md:p-6 md:pb-6 print:p-0">
         <div className="mx-auto w-full max-w-4xl">{children}</div>
       </main>
     </div>
