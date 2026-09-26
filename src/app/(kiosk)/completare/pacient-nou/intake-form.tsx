@@ -35,17 +35,20 @@ const EMPTY: IntakeInput = {
 export function IntakeForm() {
   const router = useRouter();
   const [values, setValues] = useState<IntakeInput>(EMPTY);
+  // Pacientul a scris singur data nașterii — CNP-ul nu o mai suprascrie.
+  const [birthDateTyped, setBirthDateTyped] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof IntakeInput, string>>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function set(key: keyof IntakeInput, value: string) {
+    if (key === "birth_date") setBirthDateTyped(value !== "");
     setValues((prev) => {
       const next = { ...prev, [key]: value };
-      // Data nașterii se deduce din CNP, dacă pacientul nu a scris-o deja.
-      if (key === "cnp" && !prev.birth_date) {
-        const birth = birthDateFromCnp(value.trim());
-        if (birth) next.birth_date = birth;
+      // Data nașterii urmează CNP-ul la fiecare corectură (nu doar la primul
+      // CNP valid), cât timp pacientul nu a scris-o singur.
+      if (key === "cnp" && !birthDateTyped) {
+        next.birth_date = birthDateFromCnp(value.trim()) ?? "";
       }
       return next;
     });
