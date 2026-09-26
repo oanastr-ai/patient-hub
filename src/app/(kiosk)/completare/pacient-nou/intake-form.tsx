@@ -20,6 +20,7 @@ const FIELDS: { key: keyof IntakeInput; label: string; type?: string; required?:
   { key: "phone", label: t.phone, type: "tel", short: true },
   { key: "email", label: t.email, type: "email" },
   { key: "address", label: t.address },
+  { key: "occupation", label: t.occupation },
 ];
 
 const EMPTY: IntakeInput = {
@@ -30,6 +31,7 @@ const EMPTY: IntakeInput = {
   phone: "",
   email: "",
   address: "",
+  occupation: "",
 };
 
 export function IntakeForm() {

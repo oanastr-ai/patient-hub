@@ -74,7 +74,7 @@ export type Section = {
 };
 
 /** Datele personale din fișa pacientului pe care un chestionar le poate actualiza. */
-export type PatientData = Partial<Record<"address" | "cnp" | "phone" | "email", string>>;
+export type PatientData = Partial<Record<"address" | "cnp" | "phone" | "email" | "occupation", string>>;
 
 /** Ce se știe deja despre pacient, pentru precompletare. */
 export type PrefillContext = {
@@ -83,6 +83,7 @@ export type PrefillContext = {
   cnp: string | null;
   phone: string | null;
   email: string | null;
+  occupation: string | null;
   /** Ultimele răspunsuri ale pacientului, pe codul chestionarului. */
   latest: Record<string, Answers>;
 };

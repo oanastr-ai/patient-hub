@@ -19,7 +19,7 @@ export default async function CompletarePage({
   const [{ data: patient }, { data: previous }] = await Promise.all([
     supabase
       .from("patients")
-      .select("id, first_name, last_name, address, cnp, phone, email")
+      .select("id, first_name, last_name, address, cnp, phone, email, occupation")
       .eq("id", patientId)
       .single(),
     supabase
@@ -43,6 +43,7 @@ export default async function CompletarePage({
       cnp: patient.cnp,
       phone: patient.phone,
       email: patient.email,
+      occupation: patient.occupation,
       latest,
     }) ?? {};
 

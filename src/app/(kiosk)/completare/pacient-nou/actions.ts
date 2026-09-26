@@ -14,6 +14,7 @@ const intakeSchema = z.object({
   phone: z.string().trim(),
   email: z.string().trim(),
   address: z.string().trim(),
+  occupation: z.string().trim(),
 });
 
 export type IntakeInput = z.infer<typeof intakeSchema>;
@@ -36,6 +37,7 @@ export async function createIntakePatient(input: IntakeInput): Promise<{ id: str
     phone: orNull(data.phone),
     email: orNull(data.email),
     address: orNull(data.address),
+    occupation: orNull(data.occupation),
   };
 
   const supabase = await createClient();

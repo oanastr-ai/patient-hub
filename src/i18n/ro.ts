@@ -235,6 +235,7 @@ export const ro = {
     phone: "Telefon",
     email: "E-mail",
     address: "Adresa (domiciliul)",
+    occupation: "Ocupația / locul de muncă",
     required: "Câmp obligatoriu.",
     continue: "Continuă",
     saving: "Se salvează...",
